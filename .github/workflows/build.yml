@@ -21,14 +21,14 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: cd warpweb && npm install
+        run: npm install
 
       - name: Build Linux
-        run: cd warpweb && npm run build:linux
+        run: npm run build:linux
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-artifacts
-          path: warpweb/dist/
+          path: dist/
           retention-days: 7
