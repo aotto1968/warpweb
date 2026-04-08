@@ -634,27 +634,54 @@
             const colName = colHeader.querySelector('.col-name');
             colName.style.display = 'none';
             const colData = columns[idx];
-            const headerBar = createHeaderBar({
-                name: colData.name,
-                url: '',
-                readonly: false,
-                actionLabel: '⤢',
-                actionTitle: 'Exit fullscreen',
-                onBack: () => window.warpweb.goBack(idx),
-                onReload: () => window.warpweb.reloadUrl(idx),
-                onAction: () => window.warpweb.toggleLarge(idx),
-                onUrlChange: async (url) => {
-                    window.warpweb.navigateUrl(idx, url);
-                    await saveUrlToHistory(idx, url);
-                },
-                getUrlHistory: () => loadUrlHistory(idx),
-                saveUrlHistory: (url) => saveUrlToHistory(idx, url)
+            const wrapper = document.createElement('div');
+            wrapper.className = 'url-history-wrapper';
+            wrapper.style.display = 'flex';
+            wrapper.style.alignItems = 'center';
+            wrapper.style.gap = '6px';
+            wrapper.style.flex = '1';
+            const urlInput = document.createElement('input');
+            urlInput.type = 'text';
+            urlInput.className = 'col-url-input';
+            urlInput.placeholder = 'URL (PageUp/Down für Verlauf)...';
+            urlInput.id = `url-input-${idx}`;
+            urlInput.currentHistoryIndex = -1;
+            urlInput.urlHistory = [];
+            urlInput.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const url = urlInput.value.trim();
+                    if (url) {
+                        window.warpweb.navigateUrl(idx, url);
+                        await saveUrlToHistory(idx, url);
+                        urlInput.urlHistory = await loadUrlHistory(idx);
+                        urlInput.currentHistoryIndex = -1;
+                    }
+                } else if (e.key === 'PageUp') {
+                    e.preventDefault();
+                    if (urlInput.urlHistory.length === 0) {
+                        urlInput.urlHistory = await loadUrlHistory(idx);
+                    }
+                    if (urlInput.urlHistory.length > 0) {
+                        urlInput.currentHistoryIndex = Math.min(urlInput.currentHistoryIndex + 1, urlInput.urlHistory.length - 1);
+                        urlInput.value = urlInput.urlHistory[urlInput.currentHistoryIndex];
+                    }
+                } else if (e.key === 'PageDown') {
+                    e.preventDefault();
+                    if (urlInput.currentHistoryIndex > 0) {
+                        urlInput.currentHistoryIndex--;
+                        urlInput.value = urlInput.urlHistory[urlInput.currentHistoryIndex];
+                    } else if (urlInput.currentHistoryIndex === 0) {
+                        urlInput.currentHistoryIndex = -1;
+                        urlInput.value = '';
+                    }
+                }
             });
+            wrapper.appendChild(urlInput);
             const backBtn = colHeader.querySelector('.back-btn');
-            colHeader.insertBefore(headerBar, backBtn);
+            colHeader.insertBefore(wrapper, backBtn);
             window.warpweb.getUrl(idx).then(url => {
-                const input = headerBar.querySelector('.col-url-input');
-                if (input && url) input.value = url;
+                if (url) urlInput.value = url;
             });
         }
 
