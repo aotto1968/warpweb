@@ -632,8 +632,6 @@
             col.style.flex = '1 0 100%';
             const colHeader = col.querySelector('.col-header');
             const colName = colHeader.querySelector('.col-name');
-            colName.style.display = 'none';
-            const colData = columns[idx];
             const wrapper = document.createElement('div');
             wrapper.className = 'url-history-wrapper';
             wrapper.style.display = 'flex';
@@ -678,8 +676,7 @@
                 }
             });
             wrapper.appendChild(urlInput);
-            const backBtn = colHeader.querySelector('.back-btn');
-            colHeader.insertBefore(wrapper, backBtn);
+            colHeader.insertBefore(wrapper, colName);
             window.warpweb.getUrl(idx).then(url => {
                 if (url) urlInput.value = url;
             });
@@ -700,8 +697,6 @@
             }
             const colHeader = col.querySelector('.col-header');
             const colName = colHeader.querySelector('.col-name');
-            colName.style.display = '';
-            colName.style.flex = '';
             const urlWrapper = colHeader.querySelector('.url-history-wrapper');
             if (urlWrapper) urlWrapper.remove();
         }
