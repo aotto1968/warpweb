@@ -117,7 +117,7 @@ function createWindow() {
             positionBrowserViews();
             const [width, height] = mainWindow.getContentSize();
             if (helpView) {
-                helpView.setBounds({ x: 0, y: 0, width, height });
+                helpView.setBounds({ x: 0, y: HELP_HEADER_HEIGHT, width, height: height - HELP_HEADER_HEIGHT });
             }
             if (jsonEditorView) {
                 jsonEditorView.setBounds({ x: 0, y: 0, width, height });
