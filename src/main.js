@@ -146,6 +146,9 @@ function createWindow() {
             } else if (input.key.toLowerCase() === 'e') {
                 event.preventDefault();
                 showJsonEditor();
+            } else if (input.key.toLowerCase() === 'd') {
+                event.preventDefault();
+                logLayoutDebug();
             }
         }
     });
@@ -296,6 +299,31 @@ const LAYOUT_CONFIG = {
 };
 
 let layoutHeights = { ...LAYOUT_CONFIG };
+
+function logLayoutDebug() {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+        logStream.write('[Debug] mainWindow is null or destroyed\n');
+        return;
+    }
+    const [windowWidth, windowHeight] = mainWindow.getContentSize();
+    logStream.write(`\n=== LAYOUT DEBUG ===\n`);
+    logStream.write(`windowSize: ${windowWidth}x${windowHeight}\n`);
+    logStream.write(`largeColumnKey: ${largeColumnKey}\n`);
+    logStream.write(`layoutHeights: tabs=${layoutHeights.tabs}, header=${layoutHeights.header}, statusBar=${layoutHeights.statusBar}, containerPadding=${layoutHeights.containerPadding}, scrollbar=${layoutHeights.scrollbar}\n`);
+    const tabsHeight = largeColumnKey !== null ? 0 : layoutHeights.tabs;
+    const yOffset = tabsHeight + layoutHeights.containerPadding + layoutHeights.header;
+    const scrollbarHeight = scrollbarVisible ? layoutHeights.scrollbar : 0;
+    const contentHeight = windowHeight - yOffset - layoutHeights.statusBar - scrollbarHeight;
+    logStream.write(`computed: tabsHeight=${tabsHeight}, yOffset=${yOffset}, scrollbarHeight=${scrollbarHeight}, contentHeight=${contentHeight}\n`);
+    for (const [key, view] of browserViews) {
+        const [viewCategory, idxStr] = key.split('-');
+        const isCurrentCategory = viewCategory === currentCategory;
+        const isLarge = largeColumnKey === key;
+        const bounds = view.getBounds();
+        logStream.write(`view ${key}: category=${viewCategory} current=${isCurrentCategory} large=${isLarge} bounds=${JSON.stringify(bounds)}\n`);
+    }
+    logStream.write(`==================\n\n`);
+}
 
 function positionBrowserViews() {
     if (!mainWindow || mainWindow.isDestroyed()) return;

@@ -894,7 +894,14 @@
             const tabs = document.getElementById('tabs');
             const container = document.getElementById('columns-container');
             const status = document.querySelector('.status-bar');
-            const colHeader = document.querySelector('.col-header');
+            let colHeader = document.querySelector('.col-header');
+            if (currentLargeKey) {
+                const largeCol = container.querySelector('.column[style*="flex: 1"]') || 
+                                 container.querySelector('.column:not([style*="display: none"])');
+                if (largeCol) {
+                    colHeader = largeCol.querySelector('.col-header');
+                }
+            }
             window.warpweb.setLayoutHeights({
                 tabs: tabs.offsetHeight,
                 statusBar: status.offsetHeight,
