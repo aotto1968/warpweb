@@ -8,7 +8,12 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -26,11 +31,16 @@ jobs:
         run: npm install
 
       - name: Build Linux
+        if: matrix.os == 'ubuntu-latest'
         run: npm run build:linux
+
+      - name: Build Windows
+        if: matrix.os == 'windows-latest'
+        run: npm run build:win
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-artifacts
+          name: ${{ matrix.os }}-artifacts
           path: dist/
           retention-days: 7
