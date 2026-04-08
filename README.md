@@ -31,11 +31,11 @@ The `warpweb-data.json` file defines all columns and categories displayed in the
   },
   "entries": [
     {
-      "category": "politik",
+      "category": "news",
       "items": [
         {
           "link": "https://x.com/i/lists/743696354271072257",
-          "name": "partei1",
+          "name": "news-list-1",
           "description": "Description of this column"
         }
       ]
@@ -79,7 +79,7 @@ Values can be overridden at multiple levels. Priority: **item → category → c
   "config": { "columnWidth": 464 },
   "entries": [
     {
-      "category": "politik",
+      "category": "news",
       "columnWidth": 600,
       "items": [
         { "link": "...", "name": "normal" },
@@ -130,11 +130,11 @@ The `partition` setting creates separate browser sessions. This allows multiple 
       ]
     },
     {
-      "category": "arbeit",
-      "partition": "persist:arbeit-account",
+      "category": "work",
+      "partition": "persist:work-account",
       "items": [
-        { "link": "https://x.com", "name": "arbeit1" },
-        { "link": "https://x.com", "name": "arbeit2", "columnWidth": 664 }
+        { "link": "https://x.com", "name": "work1" },
+        { "link": "https://x.com", "name": "work2", "columnWidth": 664 }
       ]
     }
   ]
@@ -415,7 +415,7 @@ warpweb/
 │   └── preload.js   # IPC bridge (context isolation)
 ├── index.html       # UI with Flexbox layout
 ├── json-editor.html # JSON configuration editor (Ace Editor)
-├── README_warpweb.html # Pre-converted help documentation
+├── README.html         # Pre-converted help documentation
 ├── package.json     # Dependencies and build config
 └── dist/            # Built installers (after build)
 ```
