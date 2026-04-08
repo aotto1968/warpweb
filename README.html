@@ -354,6 +354,25 @@ npm run build:mac
 <td><code>WarpWeb-1.0.0.dmg</code></td>
 </tr>
 </tbody></table>
+<h3>Installing the AppImage (All Linux Distros)</h3>
+<p>The AppImage works on any Linux distribution without installation:</p>
+<pre><code class="language-bash">chmod +x warpweb/dist/WarpWeb-1.0.0.AppImage
+./warpweb/dist/WarpWeb-1.0.0.AppImage
+</code></pre>
+<p>Optionally install it system-wide:</p>
+<pre><code class="language-bash">sudo cp warpweb/dist/WarpWeb-1.0.0.AppImage /usr/local/bin/WarpWeb
+sudo chmod +x /usr/local/bin/WarpWeb
+WarpWeb  # then run from anywhere
+</code></pre>
+<h3>Installing the .deb Package</h3>
+<p>On Debian/Ubuntu:</p>
+<pre><code class="language-bash">sudo dpkg -i warpweb/dist/warpweb_1.0.0_amd64.deb
+sudo apt-get install -f  # fix any missing dependencies
+</code></pre>
+<p>On openSUSE (convert with alien):</p>
+<pre><code class="language-bash">sudo alien -r warpweb/dist/warpweb_1.0.0_amd64.deb
+sudo rpm -i warpweb-1.0.0-2.x86_64.rpm
+</code></pre>
 <h2>Security</h2>
 <h3>Data Storage</h3>
 <p><strong>No sensitive data is stored by WarpWeb itself.</strong> However, be aware of the following:</p>

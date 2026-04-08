@@ -464,7 +464,7 @@ ipcMain.on('show-help', (event) => {
         return;
     }
 
-    const helpHtmlPath = path.join(__dirname, '..', 'README_warpweb.html');
+    const helpHtmlPath = path.join(__dirname, '..', 'README.html');
 
     if (!fs.existsSync(helpHtmlPath)) {
         logStream.write('[Error] README_warpweb.html not found\n');

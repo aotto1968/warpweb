@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const { marked } = require('marked');
 
-const README_MD = path.join(__dirname, '..', 'README_warpweb.md');
-const README_HTML = path.join(__dirname, 'README_warpweb.html');
+const README_MD = path.join(__dirname, 'README.md');
+const README_HTML = path.join(__dirname, 'README.html');
 
 function convertReadme() {
     const mdPath = README_MD;
@@ -21,7 +21,7 @@ function convertReadme() {
     }
 
     if (!needsConversion) {
-        console.log('README_warpweb.html is up to date');
+        console.log('README.html is up to date');
         return;
     }
 
@@ -81,7 +81,7 @@ function convertReadme() {
 </html>`;
 
     fs.writeFileSync(htmlPath, fullHtml, 'utf-8');
-    console.log('Created README_warpweb.html');
+    console.log('Created README.html');
 }
 
 convertReadme();
