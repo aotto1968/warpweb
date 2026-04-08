@@ -156,7 +156,7 @@ function createWindow() {
     });
 
     ipcMain.on('close-json-editor', () => {
-        if (jsonEditorView) {
+        if (jsonEditorView && mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.removeBrowserView(jsonEditorView);
             jsonEditorView.webContents.destroy();
             jsonEditorView = null;
@@ -166,14 +166,18 @@ function createWindow() {
 
 function showJsonEditor() {
     if (jsonEditorView) {
-        mainWindow.removeBrowserView(jsonEditorView);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.removeBrowserView(jsonEditorView);
+        }
         jsonEditorView.webContents?.destroy();
         jsonEditorView = null;
         return;
     }
 
     if (helpView) {
-        mainWindow.removeBrowserView(helpView);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.removeBrowserView(helpView);
+        }
         helpView.webContents?.destroy();
         helpView = null;
     }
@@ -407,7 +411,9 @@ ipcMain.on('toggle-large', (event, columnIndex) => {
 
 ipcMain.on('clear-all-views', () => {
     for (const [key, view] of browserViews) {
-        mainWindow.removeBrowserView(view);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.removeBrowserView(view);
+        }
         view.webContents.destroy();
     }
     browserViews.clear();
@@ -465,7 +471,9 @@ const HELP_HEADER_HEIGHT = 38;
 
 ipcMain.on('show-help', (event) => {
     if (helpView) {
-        mainWindow.removeBrowserView(helpView);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.removeBrowserView(helpView);
+        }
         helpView.webContents?.destroy();
         helpView = null;
         event.sender.send('help-visibility-changed', false);
@@ -499,7 +507,9 @@ ipcMain.on('show-help', (event) => {
     });
 
     helpView.webContents.on('close', () => {
-        mainWindow.removeBrowserView(helpView);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.removeBrowserView(helpView);
+        }
         helpView.webContents?.destroy();
         helpView = null;
         event.sender.send('help-visibility-changed', false);
@@ -523,7 +533,9 @@ ipcMain.on('help-reload', () => {
 
 ipcMain.on('help-close', () => {
     if (helpView) {
-        mainWindow.removeBrowserView(helpView);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.removeBrowserView(helpView);
+        }
         helpView.webContents?.destroy();
         helpView = null;
     }
