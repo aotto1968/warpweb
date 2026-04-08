@@ -66,21 +66,21 @@ function initLogging() {
 function getJsonPath() {
     for (const arg of process.argv) {
         if (arg.startsWith('--json=')) {
-            return arg.split('=')[1];
+            return path.normalize(arg.split('=')[1]);
         }
     }
     if (app.isPackaged) {
         const packedJson = path.join(process.resourcesPath, 'warpweb-data.json');
         if (fs.existsSync(packedJson)) {
-            return packedJson;
+            return path.normalize(packedJson);
         }
     } else {
         const externalJson = path.join(__dirname, '..', '..', 'warpweb-data.json');
         if (fs.existsSync(externalJson)) {
-            return externalJson;
+            return path.normalize(externalJson);
         }
     }
-    return path.join(__dirname, '..', 'warpweb-data.json');
+    return path.normalize(path.join(__dirname, '..', 'warpweb-data.json'));
 }
 
 function loadWarpWebJson(jsonPath) {
@@ -579,6 +579,10 @@ ipcMain.handle('get-json', () => {
         return fs.readFileSync(jsonPath, 'utf-8');
     }
     return '{}';
+});
+
+ipcMain.handle('get-json-path', () => {
+    return getJsonPath();
 });
 
 ipcMain.handle('save-json', (event, { content }) => {

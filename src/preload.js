@@ -49,6 +49,8 @@ contextBridge.exposeInMainWorld('warpweb', {
     showJsonEditor: () => ipcRenderer.send('show-json-editor'),
     /** @returns {Promise<string>} */
     getJson: () => ipcRenderer.invoke('get-json'),
+    /** @returns {Promise<string>} Absolute path to current JSON file */
+    getJsonPath: () => ipcRenderer.invoke('get-json-path'),
     /** @param {Object} obj @returns {Promise<{success: boolean, error?: string}>} */
     saveJson: (obj) => ipcRenderer.invoke('save-json', obj),
     /** Close JSON editor view */

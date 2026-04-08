@@ -4,72 +4,123 @@
     <meta charset="UTF-8">
     <title>JSON Editor - WarpWeb</title>
     <style>
-        body { margin: 0; font-family: monospace; background: #1e1e1e; color: #ddd; }
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: #f5f5f5; 
+            color: #333; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh;
+        }
+        .editor-header {
+            display: flex;
+            align-items: center;
+            padding: 4px 8px;
+            background: #e0e0e0;
+            border-bottom: 2px solid #ccc;
+            flex-shrink: 0;
+            gap: 6px;
+            min-height: 32px;
+        }
+        .editor-title {
+            font-weight: 600;
+            font-size: 13px;
+            color: #333;
+            flex: 0 0 70px;
+        }
+        .editor-filename {
+            flex: 1;
+            padding: 2px 6px;
+            border: 1px solid #bbb;
+            border-radius: 3px;
+            font-size: 12px;
+            font-family: monospace;
+            background: #fff;
+            color: #666;
+        }
+        .editor-btn {
+            padding: 2px 8px;
+            background: #ddd;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        .editor-btn:hover { background: #ccc; }
+        .editor-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: #666;
+        }
+        .editor-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
         #editor { 
             position: absolute; 
-            top: 40px; 
+            top: 0; 
             left: 0; 
             right: 0; 
             bottom: 0; 
         }
-        .toolbar {
-            background: #333;
-            color: white;
-            padding: 8px;
-            display: flex;
-            gap: 10px;
-            height: 40px;
-            box-sizing: border-box;
-        }
-        button {
-            padding: 6px 12px;
-            background: #555;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        button:hover { background: #777; }
-        .status {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #222;
-            color: #aaa;
+        .editor-status {
+            background: #e0e0e0;
+            color: #666;
             padding: 4px 8px;
             font-size: 12px;
-        }
-        #editor .ace-monokai {
-            background: #1e1e1e !important;
+            flex-shrink: 0;
+            border-top: 1px solid #ccc;
         }
     </style>
 </head>
 <body>
-    <div class="toolbar">
-        <button onclick="save()">💾 Save & Reload</button>
-        <button onclick="format()">Format JSON</button>
-        <button onclick="closeEditor()">Close</button>
+    <div class="editor-header">
+        <span class="editor-title">JSON</span>
+        <input type="text" class="editor-filename" id="filename" readonly value="warpweb-data.json">
+        <button class="editor-btn" onclick="format()" title="Format JSON">
+            <svg viewBox="0 0 24 24"><path d="M3 21h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18V7H3v2zm0-6v2h18V3H3z"/></svg>
+            Format
+        </button>
+        <button class="editor-btn" onclick="save()" title="Save and Reload">
+            <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+            Save
+        </button>
+        <button class="editor-btn" onclick="closeEditor()" title="Close">
+            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
     </div>
-    <div id="editor"></div>
-    <div class="status" id="status">Loading JSON...</div>
+    <div class="editor-container">
+        <div id="editor"></div>
+    </div>
+    <div class="editor-status" id="status">Loading JSON...</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.0/ace.min.js"></script>
     <script>
         let editor;
-        let filepath = 'warpweb-data.json';
+        let jsonPath = '';
 
         async function init() {
             editor = ace.edit("editor");
-            editor.setTheme("ace/theme/monokai");
+            editor.setTheme("ace/theme/chrome");
             editor.session.setMode("ace/mode/json");
             editor.setFontSize(14);
+            editor.renderer.setShowGutter(true);
 
             try {
+                jsonPath = await window.warpweb.getJsonPath();
                 const json = await window.warpweb.getJson();
                 editor.setValue(json);
                 editor.clearSelection();
-                document.getElementById('status').textContent = `Editing: ${filepath}`;
+                document.getElementById('filename').value = jsonPath;
+                document.getElementById('status').textContent = `Editing: ${jsonPath}`;
             } catch (e) {
                 editor.setValue('{\n  "error": "Could not load JSON"\n}');
                 document.getElementById('status').textContent = 'Error loading JSON';
@@ -84,7 +135,7 @@
             try {
                 const result = await window.warpweb.saveJson({ content });
                 if (result.success) {
-                    document.getElementById('status').textContent = 'Saved successfully. Reloading app...';
+                    document.getElementById('status').textContent = `Saved: ${jsonPath}`;
                     if (saveTimeout) clearTimeout(saveTimeout);
                     saveTimeout = setTimeout(() => {
                         closeEditor();

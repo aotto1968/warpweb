@@ -879,12 +879,12 @@
         });
 
         window.warpweb.onHelpUrlChanged((url) => {
-            const urlInput = document.getElementById('help-header .col-url-input');
+            const urlInput = document.querySelector('#help-header .col-url-input');
             if (urlInput) urlInput.value = url || '';
         });
 
         window.warpweb.onHelpCanGoBack((canGoBack) => {
-            const backBtn = document.getElementById('help-header .help-nav-btn');
+            const backBtn = document.querySelector('#help-header .help-nav-btn');
             if (backBtn) backBtn.disabled = !canGoBack;
         });
 
