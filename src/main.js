@@ -460,18 +460,13 @@ ipcMain.handle('save-url-history', (event, { columnIndex, history }) => {
     return { success: true };
 });
 
+const HELP_URL = 'https://github.com/aotto1968/warpweb/blob/master/README.md';
+
 ipcMain.on('show-help', (event) => {
     if (helpView) {
         mainWindow.removeBrowserView(helpView);
         helpView.webContents?.destroy();
         helpView = null;
-        return;
-    }
-
-    const helpHtmlPath = path.join(__dirname, '..', 'README.html');
-
-    if (!fs.existsSync(helpHtmlPath)) {
-        logStream.write('[Error] README_warpweb.html not found\n');
         return;
     }
 
@@ -485,7 +480,7 @@ ipcMain.on('show-help', (event) => {
     mainWindow.addBrowserView(helpView);
     const [width, height] = mainWindow.getContentSize();
     helpView.setBounds({ x: 0, y: 0, width, height });
-    helpView.webContents.loadFile(helpHtmlPath);
+    helpView.webContents.loadURL(HELP_URL);
 
     helpView.webContents.on('did-finish-load', () => {
         logStream.write('[Info] Help page loaded\n');
