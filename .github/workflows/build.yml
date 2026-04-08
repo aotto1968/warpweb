@@ -8,10 +8,7 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-      fail-fast: false
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -27,20 +24,11 @@ jobs:
         run: cd warpweb && npm install
 
       - name: Build Linux
-        if: matrix.os == 'ubuntu-latest'
         run: cd warpweb && npm run build:linux
-
-      - name: Build macOS
-        if: matrix.os == 'macos-latest'
-        run: cd warpweb && npm run build:mac
-
-      - name: Build Windows
-        if: matrix.os == 'windows-latest'
-        run: cd warpweb && npm run build:win
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}-artifacts
+          name: linux-artifacts
           path: warpweb/dist/
           retention-days: 7
