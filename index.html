@@ -678,6 +678,7 @@
             wrapper.appendChild(urlInput);
             colName.after(wrapper);
             colName.style.flex = '0 0 auto';
+            colName.style.marginRight = '20px';
             colName.style.whiteSpace = 'nowrap';
             colName.style.overflow = 'hidden';
             colName.style.textOverflow = 'ellipsis';
@@ -702,6 +703,7 @@
             const colHeader = col.querySelector('.col-header');
             const colName = colHeader.querySelector('.col-name');
             colName.style.flex = '';
+            colName.style.marginRight = '';
             colName.style.whiteSpace = '';
             colName.style.overflow = '';
             colName.style.textOverflow = '';
