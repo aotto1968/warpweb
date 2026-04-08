@@ -13,14 +13,19 @@
   "devDependencies": {
     "electron": "^41.0.0",
     "electron-builder": "^25.1.8",
+    "jimp": "^1.6.1",
     "marked": "^12.0.0"
   },
   "build": {
     "appId": "com.warpweb.app",
     "productName": "WarpWeb",
+    "icon": "icon",
     "publish": null,
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "category": "Network",
       "maintainer": "WarpWeb <warpweb@example.com>"
     },
