@@ -10,8 +10,6 @@ ELECTRON_DIR="$SCRIPT_DIR"
 LOG_FILE="$SCRIPT_DIR/../logs/warpweb.log"
 OUTPUT_FILE="$SCRIPT_DIR/../warpweb-data.json"
 TEST_FILE="$SCRIPT_DIR/../warpweb-data-test.json"
-README_MD="$ELECTRON_DIR/README.md"
-README_HTML="$ELECTRON_DIR/README.html"
 
 cd "$ELECTRON_DIR"
 
@@ -21,21 +19,8 @@ function setup() {
     echo "Setup complete."
 }
 
-get_mtime() {
-    stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0
-}
-
 function start() {
     echo "Starting WarpWeb..."
-
-    if [ -f "$README_MD" ]; then
-        MD_TIME=$(get_mtime "$README_MD")
-        HTML_TIME=$(get_mtime "$README_HTML")
-        if [ "$MD_TIME" -gt "$HTML_TIME" ]; then
-            echo "Converting README_warpweb.md to HTML..."
-            node convert-readme.js
-        fi
-    fi
 
     ELECTRON_PATH="$ELECTRON_DIR/node_modules/.bin/electron"
     if [ ! -f "$ELECTRON_PATH" ]; then
