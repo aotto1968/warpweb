@@ -69,7 +69,11 @@ function getJsonPath() {
             return arg.split('=')[1];
         }
     }
-    return path.join(__dirname, '..', '..', 'warpweb-data.json');
+    const externalJson = path.join(__dirname, '..', '..', 'warpweb-data.json');
+    if (fs.existsSync(externalJson)) {
+        return externalJson;
+    }
+    return path.join(__dirname, '..', 'warpweb-data.json');
 }
 
 function loadWarpWebJson(jsonPath) {
