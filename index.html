@@ -632,10 +632,7 @@
             col.style.flex = '1 0 100%';
             const colHeader = col.querySelector('.col-header');
             const colName = colHeader.querySelector('.col-name');
-            colName.style.flex = '0 0 80px';
-            colName.style.whiteSpace = 'nowrap';
-            colName.style.overflow = 'hidden';
-            colName.style.textOverflow = 'ellipsis';
+            colName.style.display = 'none';
             const colData = columns[idx];
             const headerBar = createHeaderBar({
                 name: colData.name,
@@ -676,11 +673,8 @@
             }
             const colHeader = col.querySelector('.col-header');
             const colName = colHeader.querySelector('.col-name');
-            // Restore col-name to original flex:1 behavior
+            colName.style.display = '';
             colName.style.flex = '';
-            colName.style.whiteSpace = '';
-            colName.style.overflow = '';
-            colName.style.textOverflow = '';
             const urlWrapper = colHeader.querySelector('.url-history-wrapper');
             if (urlWrapper) urlWrapper.remove();
         }
