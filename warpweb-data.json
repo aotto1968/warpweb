@@ -1,25 +1,16 @@
 {
   "config": {
-    "columnWidth": 464
+    "columnWidth": 464,
+    "partition": "persist:warpweb-shared"
   },
   "entries": [
-    {   
-      "link":  "https://x.com",                              
-      "category":  "social",      
-      "name":  "twitter",       
-      "description": "X social media" 
-    },
-    {   
-      "link":  "https://www.facebook.com",                   
-      "category":  "social",      
-      "name":  "facebook",      
-      "description": "facebook social media" 
-    },
-    {   
-      "link":  "https://www.instagram.com",                  
-      "category":  "social",      
-      "name":  "instagram",     
-      "description": "instagram social media" 
+    {
+      "category": "social",
+      "items": [
+        { "link": "https://x.com",              "name": "twitter" },
+        { "link": "https://www.facebook.com",   "name": "facebook" },
+        { "link": "https://www.instagram.com",  "name": "instagram", "columnWidth": 664 }
+      ]
     }
   ]
 }

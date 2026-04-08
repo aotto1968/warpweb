@@ -69,9 +69,16 @@ function getJsonPath() {
             return arg.split('=')[1];
         }
     }
-    const externalJson = path.join(__dirname, '..', '..', 'warpweb-data.json');
-    if (fs.existsSync(externalJson)) {
-        return externalJson;
+    if (app.isPackaged) {
+        const packedJson = path.join(process.resourcesPath, 'warpweb-data.json');
+        if (fs.existsSync(packedJson)) {
+            return packedJson;
+        }
+    } else {
+        const externalJson = path.join(__dirname, '..', '..', 'warpweb-data.json');
+        if (fs.existsSync(externalJson)) {
+            return externalJson;
+        }
     }
     return path.join(__dirname, '..', 'warpweb-data.json');
 }

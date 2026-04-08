@@ -21,6 +21,16 @@
     "productName": "WarpWeb",
     "icon": "icon",
     "publish": null,
+    "files": [
+      "**/*",
+      "!warpweb-data.json"
+    ],
+    "extraResources": [
+      {
+        "from": "warpweb-data.json",
+        "to": "warpweb-data.json"
+      }
+    ],
     "linux": {
       "target": [
         "AppImage",

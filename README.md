@@ -150,7 +150,7 @@ The `partition` setting creates separate browser sessions. This allows multiple 
 - **Responsive resize** - Columns adapt to window size
 - **Horizontal scroll** - Navigate many columns with scrollbar
 - **JSON Editor** - Edit configuration directly in the app (BrowserView tab)
-- **Help viewer** - Full documentation in BrowserView tab
+- **Help viewer** - Full documentation in BrowserView tab (uses single-column layout with URL bar)
 - **Keyboard shortcuts** - Ctrl+Shift+I for DevTools, Ctrl+Shift+E for JSON Editor
 - **Single-column mode (large-btn)** - Full-width view with URL bar
 - **URL bar** - Shows current URL, allows navigation, maintains history
@@ -166,6 +166,29 @@ Three SVG icon buttons on the right side of the header:
 | Help        | circle-? icon | Opens documentation as BrowserView tab |
 
 Click JSON Editor or Help again to close the tab.
+
+## Help Viewer
+
+The Help viewer displays the GitHub README documentation in a BrowserView. It uses the same layout as single-column mode:
+
+```
+[Help] | [URL input....................] | [←] | [⟳] | [×]
+```
+
+### Help Header Bar Features
+
+- **Help label** - Display name on the left
+- **URL display** - Shows the current documentation page URL (read-only)
+- **Navigation buttons** - Back, Reload, and Close with identical SVG icons to single-column mode
+- **Tabs hidden** - Category tabs are hidden when Help is open
+
+### Help Navigation
+
+| Button | Action                          |
+| ------ | ------------------------------- |
+| ←      | Go back to previous page        |
+| ⟳      | Reload the current page         |
+| ×      | Close Help and return to normal |
 
 ## Keyboard Shortcuts
 
@@ -252,6 +275,8 @@ npm run build:win
 npm run build:mac
 ```
 
+The installer includes a default `warpweb-data.json` with sample columns (Twitter, Facebook, Instagram) located in the app resources folder.
+
 Outputs are placed in `warpweb/dist/`:
 
 | Platform | Format         | File                      |
@@ -277,6 +302,17 @@ sudo cp warpweb/dist/WarpWeb-1.0.0.AppImage /usr/local/bin/WarpWeb
 sudo chmod +x /usr/local/bin/WarpWeb
 WarpWeb  # then run from anywhere
 ```
+
+### Running AppImage without Installation
+
+Extract the AppImage contents and run directly:
+
+```bash
+./warpweb/dist/WarpWeb-1.0.0.AppImage --appimage-extract
+./squashfs-root/warpweb
+```
+
+This extracts the contents to `squashfs-root/` and runs the executable without installing.
 
 ### Installing the .deb Package
 
