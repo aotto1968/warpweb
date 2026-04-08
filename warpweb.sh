@@ -1,7 +1,11 @@
 #!/bin/bash
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SCRIPT_SOURCE" ]; do
+    SCRIPT_SOURCE="$(readlink -f "$SCRIPT_SOURCE")"
+done
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_SOURCE")" && pwd)"
 ELECTRON_DIR="$SCRIPT_DIR"
 LOG_FILE="$SCRIPT_DIR/../logs/warpweb.log"
 OUTPUT_FILE="$SCRIPT_DIR/../warpweb-data.json"
