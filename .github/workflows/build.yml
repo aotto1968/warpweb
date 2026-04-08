@@ -1,0 +1,47 @@
+name: Build Releases
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            script: npm run build:linux
+            artifact: WarpWeb-*.AppImage warpweb_*.deb
+          - os: macos-latest
+            script: npm run build:mac
+            artifact: WarpWeb-*.dmg
+          - os: windows-latest
+            script: npm run build:win
+            artifact: WarpWeb-*.exe
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: warpweb/package-lock.json
+
+      - name: Install dependencies
+        run: cd warpweb && npm install
+
+      - name: Build
+        run: cd warpweb && ${{ matrix.script }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}
+          path: warpweb/dist/${{ matrix.artifact }}
+          retention-days: 7
