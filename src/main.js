@@ -487,6 +487,15 @@ ipcMain.on('show-help', (event) => {
 
     helpView.webContents.on('did-finish-load', () => {
         logStream.write('[Info] Help page loaded\n');
+        event.sender.send('help-url-changed', HELP_URL);
+    });
+
+    helpView.webContents.on('did-change-url', (event, url) => {
+        event.sender.send('help-url-changed', url);
+    });
+
+    helpView.webContents.on('go-back-changed', (event, canGoBack) => {
+        event.sender.send('help-can-go-back', canGoBack);
     });
 
     helpView.webContents.on('close', () => {
@@ -498,6 +507,18 @@ ipcMain.on('show-help', (event) => {
 
     event.sender.send('help-visibility-changed', true);
     logStream.write('[Info] Showing help view\n');
+});
+
+ipcMain.on('help-back', () => {
+    if (helpView && helpView.webContents.canGoBack()) {
+        helpView.webContents.goBack();
+    }
+});
+
+ipcMain.on('help-reload', () => {
+    if (helpView) {
+        helpView.webContents.reload();
+    }
 });
 
 ipcMain.on('help-close', () => {

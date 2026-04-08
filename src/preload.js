@@ -37,6 +37,14 @@ contextBridge.exposeInMainWorld('warpweb', {
     showHelp: () => ipcRenderer.send('show-help'),
     /** @param {function(boolean)} callback */
     onHelpVisibilityChanged: (callback) => ipcRenderer.on('help-visibility-changed', (event, visible) => callback(visible)),
+    /** @param {function(string)} callback */
+    onHelpUrlChanged: (callback) => ipcRenderer.on('help-url-changed', (event, url) => callback(url)),
+    /** @param {function(boolean)} callback */
+    onHelpCanGoBack: (callback) => ipcRenderer.on('help-can-go-back', (event, canGoBack) => callback(canGoBack)),
+    /** Go back in help view */
+    helpBack: () => ipcRenderer.send('help-back'),
+    /** Reload help view */
+    helpReload: () => ipcRenderer.send('help-reload'),
     /** Open JSON editor for full configuration */
     showJsonEditor: () => ipcRenderer.send('show-json-editor'),
     /** @returns {Promise<string>} */
