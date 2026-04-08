@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>JSON Editor - WarpWeb</title>
+    <style>
+        body { margin: 0; font-family: monospace; background: #1e1e1e; color: #ddd; }
+        #editor { 
+            position: absolute; 
+            top: 40px; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+        }
+        .toolbar {
+            background: #333;
+            color: white;
+            padding: 8px;
+            display: flex;
+            gap: 10px;
+            height: 40px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 6px 12px;
+            background: #555;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover { background: #777; }
+        .status {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #222;
+            color: #aaa;
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        #editor .ace-monokai {
+            background: #1e1e1e !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <button onclick="save()">💾 Save & Reload</button>
+        <button onclick="format()">Format JSON</button>
+        <button onclick="closeEditor()">Close</button>
+    </div>
+    <div id="editor"></div>
+    <div class="status" id="status">Loading JSON...</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.0/ace.min.js"></script>
+    <script>
+        let editor;
+        let filepath = 'warpweb-data.json';
+
+        async function init() {
+            editor = ace.edit("editor");
+            editor.setTheme("ace/theme/monokai");
+            editor.session.setMode("ace/mode/json");
+            editor.setFontSize(14);
+
+            try {
+                const json = await window.warpweb.getJson();
+                editor.setValue(json);
+                editor.clearSelection();
+                document.getElementById('status').textContent = `Editing: ${filepath}`;
+            } catch (e) {
+                editor.setValue('{\n  "error": "Could not load JSON"\n}');
+                document.getElementById('status').textContent = 'Error loading JSON';
+            }
+        }
+
+        let saveTimeout = null;
+
+        async function save() {
+            let content = editor.getValue();
+            if (!content.endsWith('\n')) content += '\n';
+            try {
+                const result = await window.warpweb.saveJson({ content });
+                if (result.success) {
+                    document.getElementById('status').textContent = 'Saved successfully. Reloading app...';
+                    if (saveTimeout) clearTimeout(saveTimeout);
+                    saveTimeout = setTimeout(() => {
+                        closeEditor();
+                    }, 1000);
+                } else {
+                    alert('Save failed: ' + (result.error || 'Unknown error'));
+                }
+            } catch (e) {
+                alert('Error saving: ' + e.message);
+            }
+        }
+
+        function closeEditor() {
+            if (saveTimeout) {
+                clearTimeout(saveTimeout);
+                saveTimeout = null;
+            }
+            window.warpweb.closeJsonEditor();
+        }
+
+        function format() {
+            try {
+                const json = JSON.parse(editor.getValue());
+                editor.setValue(formatEntriesItemsOneline(json) + '\n');
+                editor.clearSelection();
+                document.getElementById('status').textContent = 'JSON formatted (items on single line)';
+            } catch (e) {
+                alert('Invalid JSON: ' + e.message);
+            }
+        }
+
+        function fmt(val) {
+            if (val === null) return 'null';
+            if (val === true) return 'true';
+            if (val === false) return 'false';
+            if (typeof val === 'number') return val;
+            return JSON.stringify(val);
+        }
+
+        function formatEntriesItemsOneline(obj, depth = 0) {
+            if (depth > 20) return JSON.stringify(obj);
+            const sp = (n) => '  '.repeat(n);
+
+            if (Array.isArray(obj)) {
+                if (obj.length === 0) return '[]';
+                if (depth >= 2) {
+                    return '[' + obj.map(item => formatEntriesItemsOneline(item, depth + 1)).join(', ') + ']';
+                }
+                const items = obj.map(item => sp(depth + 1) + formatEntriesItemsOneline(item, depth + 1));
+                return '[\n' + items.join(',\n') + '\n' + sp(depth) + ']';
+            }
+
+            if (obj !== null && typeof obj === 'object') {
+                const keys = Object.keys(obj);
+                if (keys.length === 0) return '{}';
+                const pairs = keys.map(k => {
+                    const val = obj[k];
+                    let valStr;
+                    if (k === 'items' && Array.isArray(val)) {
+                        const inner = val.map(item => {
+                            if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
+                                const ekeys = Object.keys(item);
+                                return '{ ' + ekeys.map(ek => '"' + ek + '": ' + fmt(item[ek])).join(', ') + ' }';
+                            }
+                            return JSON.stringify(item);
+                        });
+                        valStr = '[\n' + inner.map(i => sp(depth + 2) + i).join(',\n') + '\n' + sp(depth + 1) + ']';
+                    } else {
+                        valStr = formatEntriesItemsOneline(val, depth + 1);
+                    }
+                    return sp(depth) + '  "' + k + '": ' + valStr;
+                });
+                return '{\n' + pairs.join(',\n') + '\n' + sp(depth) + '}';
+            }
+
+            return JSON.stringify(obj);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WarpWeb</title>
+    <style>
+        :root {
+            --tabs-height: 38px;
+            --header-height: 24px;
+            --status-bar-height: 27px;
+            --container-padding: 4px;
+            --scrollbar-height: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tabs {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px;
+            background: #e0e0e0;
+            border-bottom: 2px solid #ccc;
+            flex-shrink: 0;
+            min-height: var(--tabs-height);
+        }
+
+        .tab-btn {
+            padding: 6px 12px;
+            border: none;
+            background: #ddd;
+            color: #333;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .tab-btn:hover {
+            background: #ccc;
+        }
+
+        .tab-btn.active {
+            background: #f5f5f5;
+            border-bottom: 2px solid #f5f5f5;
+            margin-bottom: -2px;
+        }
+
+        .icon-group {
+            display: flex;
+            gap: 4px;
+            margin-left: auto;
+        }
+
+        .tool-btn, .help-btn {
+            padding: 2px 6px;
+            background: #ddd;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .tool-btn svg, .help-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .tool-btn:hover, .help-btn:hover {
+            background: #d8d8d8;
+        }
+
+        .columns-container {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            padding: 4px 4px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            background: #ddd;
+        }
+
+        .columns-container::-webkit-scrollbar {
+            height: var(--scrollbar-height);
+        }
+
+        .columns-container::-webkit-scrollbar-track {
+            background: #ccc;
+        }
+
+        .columns-container::-webkit-scrollbar-thumb {
+            background: #aaa;
+            border-radius: 6px;
+        }
+
+        .columns-container::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+
+        .column {
+            flex: 0 0 var(--col-width, 400px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .col-header {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 6px;
+            background: #ddd;
+            border: 1px solid #ccc;
+            border-radius: 4px 4px 0 0;
+            border-bottom: none;
+            min-height: 24px;
+        }
+
+        .back-btn, .reload-btn, .large-btn {
+            padding: 2px 6px;
+            background: #ddd;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .back-btn:hover, .reload-btn:hover, .large-btn:hover {
+            background: #d8d8d8;
+        }
+
+        .back-btn:disabled, .reload-btn:disabled, .large-btn:disabled {
+            background: #ddd;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .reload-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: #666;
+        }
+
+        .back-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .large-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: #666;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .reload-btn.spinning svg {
+            animation: spin 1s linear infinite;
+        }
+
+        .col-name {
+            font-weight: bold;
+            color: #0066cc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .col-name:hover {
+            text-decoration: underline;
+        }
+
+        .col-placeholder {
+            flex: 1;
+            min-height: 200px;
+            background: #e0e0e0;
+            border: 1px dashed #ccc;
+            border-radius: 0 0 4px 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .col-placeholder:hover {
+            background: #d8d8d8;
+        }
+
+        .url-history-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+            display: flex;
+            align-items: center;
+        }
+
+        .col-url-input {
+            width: 100%;
+            padding: 2px 6px;
+            border: 1px solid #bbb;
+            border-radius: 3px;
+            font-size: 12px;
+            background: #fff;
+            box-sizing: border-box;
+        }
+
+        .col-url-input:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 12px;
+            background: #ddd;
+            border-top: 1px solid #ccc;
+            font-size: 12px;
+            color: #666;
+            flex-shrink: 0;
+        }
+
+        .status-info {
+            color: #888;
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="tabs" id="tabs">
+        <div class="icon-group">
+            <button class="tool-btn" id="json-btn" data-action="json" title="JSON Editor">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h6v6h6v10H6z" fill="#666"/></svg>
+            </button>
+            <button class="tool-btn" id="devtools-btn" data-action="devtools" title="DevTools">
+                <svg viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z" fill="#666"/></svg>
+            </button>
+            <button class="help-btn" id="help-btn" data-action="help" title="Help">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" fill="#666"/></svg>
+            </button>
+        </div>
+    </div>
+    <div class="columns-container" id="columns-container"></div>
+    <div class="status-bar">
+        <span id="status">Bereit - Klick auf Spaltenname öffnet BrowserView</span>
+        <span class="status-info" id="status-info"></span>
+    </div>
+
+    <script>
+        let currentCategory = null;
+        let columnWidth = 400;
+        let columns = [];
+        let container = null;
+        let currentLargeKey = null;
+        // columnFlexCache: Maps column index → original flex value
+        // WHY: Large mode changes col.style.flex, we must restore original for multi-column
+        let columnFlexCache = new Map();
+
+        const LARGE_ICON = `<svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 00-2 2v14a2 2 0 002 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>`;
+        const SMALL_ICON = `<svg viewBox="0 0 24 24"><path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>`;
+
+        document.documentElement.style.setProperty('--col-width', columnWidth + 'px');
+
+        async function initStatusInfo() {
+            const systemInfo = await window.warpweb.getSystemInfo();
+            function updateStatusInfo() {
+                const now = new Date();
+                const date = now.toLocaleDateString('de-DE');
+                const time = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+                document.getElementById('status-info').textContent = `${systemInfo} | ${date} ${time}`;
+            }
+            updateStatusInfo();
+            setInterval(updateStatusInfo, 60000);
+        }
+        initStatusInfo();
+
+        function updateContainerHeight() {
+            const container = document.getElementById('columns-container');
+            const rect = container.getBoundingClientRect();
+            const scrollbarVisible = container.scrollWidth > container.clientWidth;
+            window.warpweb.setContainerHeight(Math.floor(rect.height), scrollbarVisible);
+        }
+
+        const resizeObserver = new ResizeObserver(() => {
+            updateContainerHeight();
+        });
+
+        window.onerror = (msg, url, line, col, error) => {
+            window.warpweb.logError(`${msg} (${url}:${line}:${col})`);
+            document.getElementById('status').textContent = 'Error: ' + msg;
+        };
+
+        window.addEventListener('unhandledrejection', (event) => {
+            window.warpweb.logError('Unhandled Promise: ' + event.reason);
+        });
+
+        function sendScrollPosition() {
+            const container = document.getElementById('columns-container');
+            window.warpweb.setScrollX(container.scrollLeft);
+        }
+
+        function renderUI(data) {
+            const { categories, columnWidth: cw } = data;
+            if (cw) {
+                columnWidth = cw;
+                document.documentElement.style.setProperty('--col-width', columnWidth + 'px');
+            }
+
+            const katNames = Object.keys(categories);
+            const tabsEl = document.getElementById('tabs');
+
+            tabsEl.innerHTML = katNames.map((kat, i) => 
+                `<button class="tab-btn${i === 0 ? ' active' : ''}" data-kat="${kat}">${kat}</button>`
+            ).join('');
+            
+            const iconGroup = document.createElement('div');
+            iconGroup.className = 'icon-group';
+            iconGroup.innerHTML = `
+                <button class="tool-btn" data-action="json" title="JSON Editor">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h6v6h6v10H6z" fill="#666"/></svg>
+                </button>
+                <button class="tool-btn" data-action="devtools" title="DevTools">
+                    <svg viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z" fill="#666"/></svg>
+                </button>
+                <button class="help-btn" data-action="help" title="Help">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" fill="#666"/></svg>
+                </button>`;
+            tabsEl.appendChild(iconGroup);
+
+            currentCategory = katNames[0];
+            columns = categories[currentCategory] || [];
+
+            container = document.getElementById('columns-container');
+            resizeObserver.observe(container);
+
+            renderColumns();
+            autoLoadColumns();
+            updateContainerHeight();
+
+            container.addEventListener('scroll', () => {
+                updateContainerHeight();
+                sendScrollPosition();
+            });
+
+            tabsEl.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    tabsEl.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const kat = btn.dataset.kat;
+                    currentCategory = kat;
+                    columns = categories[kat] || [];
+                    currentLargeKey = null;
+                    renderColumns();
+                    autoLoadColumns();
+                    window.warpweb.showCategory(kat);
+                });
+            });
+        }
+
+        function renderColumns() {
+            container.innerHTML = columns.map((col, idx) => `
+                <div class="column" style="--col-width: ${col.columnWidth || columnWidth}px">
+                    <div class="col-header">
+                        <span class="col-name" data-idx="${idx}">${col.name}</span>
+                        <button class="back-btn" data-idx="${idx}" disabled>
+                            <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="#666"/></svg>
+                        </button>
+                        <button class="reload-btn" data-idx="${idx}" disabled>
+                            <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                        </button>
+                        <button class="large-btn" data-idx="${idx}" disabled>
+                            ${currentLargeKey === `${currentCategory}-${idx}` ? SMALL_ICON : LARGE_ICON}
+                        </button>
+                    </div>
+                    <div class="col-placeholder" id="placeholder-${idx}" data-idx="${idx}" data-link="${col.link}">
+                        Klick zum Laden
+                    </div>
+                </div>
+            `).join('');
+
+            container.querySelectorAll('.column').forEach((colEl, idx) => {
+                const backBtn = colEl.querySelector('.back-btn');
+                const reloadBtn = colEl.querySelector('.reload-btn');
+                const largeBtn = colEl.querySelector('.large-btn');
+                const placeholder = colEl.querySelector('.col-placeholder');
+
+                backBtn.addEventListener('click', async () => {
+                    await window.warpweb.goBack(idx);
+                    document.getElementById('status').textContent = `Zurück in ${columns[idx].name}`;
+                    setTimeout(async () => {
+                        const urlInput = document.getElementById('url-input-' + idx);
+                        if (urlInput) {
+                            const url = await window.warpweb.getUrl(idx);
+                            if (url) urlInput.value = url;
+                        }
+                    }, 500);
+                });
+
+                reloadBtn.addEventListener('click', () => {
+                    window.warpweb.reloadUrl(idx);
+                    document.getElementById('status').textContent = `Reloade: ${columns[idx].name}`;
+                });
+
+                largeBtn.addEventListener('click', () => {
+                    window.warpweb.toggleLarge(idx);
+                    document.getElementById('status').textContent = `Toggle large: ${columns[idx].name}`;
+                });
+
+                placeholder.addEventListener('click', () => loadColumn(idx));
+            });
+        }
+
+        /**
+         * Injects URL input into column header for large-mode.
+         * 
+         * WHY THIS APPROACH:
+         * - BrowserView is a native Chromium overlay that sits ABOVE all DOM elements
+         * - CSS z-index cannot fix this - it's an Electron architectural limitation
+         * - Therefore we CANNOT use a dropdown for URL history
+         * - Instead: PageUp/PageDown keyboard navigation through history
+         * 
+         * LAYOUT PRESERVATION:
+         * - Saves original col.style.flex to columnFlexCache
+         * - Restores it in removeUrlBar() to keep multi-column layout unchanged
+         */
+        function injectUrlBar(idx) {
+            const col = container.querySelectorAll('.column')[idx];
+            if (!col) return;
+            // Preserve multi-column flex value before changing
+            columnFlexCache.set(idx, col.style.flex);
+            // Large mode: full width
+            col.style.flex = '1 0 100%';
+            const colHeader = col.querySelector('.col-header');
+            const colName = colHeader.querySelector('.col-name');
+            // Make col-name fixed width (was flex:1 before)
+            colName.style.flex = '0 0 80px';
+            colName.style.whiteSpace = 'nowrap';
+            colName.style.overflow = 'hidden';
+            colName.style.textOverflow = 'ellipsis';
+            const urlInput = document.createElement('input');
+            urlInput.type = 'text';
+            urlInput.className = 'col-url-input';
+            urlInput.id = `url-input-${idx}`;
+            urlInput.placeholder = 'URL (PageUp/Down für Verlauf)...';
+            const historyWrapper = document.createElement('div');
+            historyWrapper.className = 'url-history-wrapper';
+            historyWrapper.appendChild(urlInput);
+            const backBtn = colHeader.querySelector('.back-btn');
+            colHeader.insertBefore(historyWrapper, backBtn);
+            window.warpweb.getUrl(idx).then(url => {
+                if (url) urlInput.value = url;
+            });
+            urlInput.currentHistoryIndex = -1;
+            urlInput.urlHistory = [];
+            urlInput.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const url = urlInput.value.trim();
+                    if (url) {
+                        window.warpweb.navigateUrl(idx, url);
+                        await saveUrlToHistory(idx, url);
+                        urlInput.urlHistory = await loadUrlHistory(idx);
+                        urlInput.currentHistoryIndex = -1;
+                    }
+                } else if (e.key === 'PageUp') {
+                    e.preventDefault();
+                    if (urlInput.urlHistory.length === 0) {
+                        urlInput.urlHistory = await loadUrlHistory(idx);
+                    }
+                    if (urlInput.urlHistory.length > 0) {
+                        urlInput.currentHistoryIndex = Math.min(urlInput.currentHistoryIndex + 1, urlInput.urlHistory.length - 1);
+                        urlInput.value = urlInput.urlHistory[urlInput.currentHistoryIndex];
+                    }
+                } else if (e.key === 'PageDown') {
+                    e.preventDefault();
+                    if (urlInput.currentHistoryIndex > 0) {
+                        urlInput.currentHistoryIndex--;
+                        urlInput.value = urlInput.urlHistory[urlInput.currentHistoryIndex];
+                    } else if (urlInput.currentHistoryIndex === 0) {
+                        urlInput.currentHistoryIndex = -1;
+                        urlInput.value = '';
+                    }
+                }
+            });
+        }
+
+        /**
+         * Removes URL input from column header when exiting large-mode.
+         * Restores original flex value from cache to preserve multi-column layout.
+         */
+        function removeUrlBar(idx) {
+            const col = container.querySelectorAll('.column')[idx];
+            if (!col) return;
+            // Restore original multi-column flex value
+            const savedFlex = columnFlexCache.get(idx);
+            if (savedFlex !== undefined) {
+                col.style.flex = savedFlex;
+                columnFlexCache.delete(idx);
+            }
+            const colHeader = col.querySelector('.col-header');
+            const colName = colHeader.querySelector('.col-name');
+            // Restore col-name to original flex:1 behavior
+            colName.style.flex = '';
+            colName.style.whiteSpace = '';
+            colName.style.overflow = '';
+            colName.style.textOverflow = '';
+            const urlWrapper = colHeader.querySelector('.url-history-wrapper');
+            if (urlWrapper) urlWrapper.remove();
+        }
+
+        async function loadUrlHistory(idx) {
+            const key = `urlHistory-${currentCategory}-${idx}`;
+            try {
+                return JSON.parse(localStorage.getItem(key) || '[]');
+            } catch {
+                return [];
+            }
+        }
+
+        // saveUrlToHistory: Adds URL to localStorage history
+        // Called when: Enter is pressed, or column initially loads
+        // Deduplication: removes existing entry before adding (moves to top)
+        async function saveUrlToHistory(idx, url) {
+            if (!url) return;
+            const key = `urlHistory-${currentCategory}-${idx}`;
+            let history = await loadUrlHistory(idx);
+            history = history.filter(u => u !== url);
+            history.unshift(url);
+            history = history.slice(0, 20);
+            localStorage.setItem(key, JSON.stringify(history));
+        }
+
+        async function autoLoadColumns() {
+            await Promise.all(columns.map((_, idx) => loadColumn(idx)));
+        }
+
+        async function loadColumn(idx) {
+            const col = columns[idx];
+            if (!col) return;
+            const colEls = container.querySelectorAll('.column');
+            const colEl = colEls[idx];
+            const backBtn = colEl.querySelector('.back-btn');
+            const reloadBtn = colEl.querySelector('.reload-btn');
+            const largeBtn = colEl.querySelector('.large-btn');
+            const placeholder = colEl.querySelector('.col-placeholder');
+
+            reloadBtn.classList.add('spinning');
+            placeholder.innerHTML = 'Laden...';
+            document.getElementById('status').textContent = `Lade: ${col.link}`;
+            await window.warpweb.openUrl(currentCategory, idx, col.link);
+            reloadBtn.classList.remove('spinning');
+            backBtn.disabled = false;
+            reloadBtn.disabled = false;
+            largeBtn.disabled = false;
+            saveUrlToHistory(idx, col.link);
+            document.getElementById('status').textContent = `Geladen: ${col.name}`;
+        }
+
+        window.warpweb.getData().then(data => {
+            renderUI(data);
+        }).catch(err => {
+            window.warpweb.logError('getData failed: ' + err.message);
+            document.getElementById('status').textContent = 'Fehler: ' + err.message;
+        });
+
+        window.warpweb.onDataReloaded(async () => {
+            document.getElementById('status').textContent = 'Daten geändert, lade neu...';
+            window.warpweb.clearAllViews();
+            const data = await window.warpweb.getData();
+            currentLargeKey = null;
+            renderUI(data);
+            document.getElementById('status').textContent = 'Daten neu geladen';
+        });
+
+        window.warpweb.onLargeChanged((key) => {
+            currentLargeKey = key;
+            const tabsEl = document.getElementById('tabs');
+            tabsEl.style.display = key !== null ? 'none' : '';
+            container.querySelectorAll('.column').forEach((col, idx) => {
+                const colKey = `${currentCategory}-${idx}`;
+                if (key === null) {
+                    col.style.display = '';
+                    removeUrlBar(idx);
+                } else if (colKey === key) {
+                    col.style.display = '';
+                    injectUrlBar(idx);
+                } else {
+                    col.style.display = 'none';
+                    removeUrlBar(idx);
+                }
+            });
+            container.querySelectorAll('.large-btn').forEach((btn, idx) => {
+                const colKey = `${currentCategory}-${idx}`;
+                if (colKey === key) {
+                    btn.innerHTML = SMALL_ICON;
+                } else {
+                    btn.innerHTML = LARGE_ICON;
+                }
+            });
+            setTimeout(sendLayoutHeights, 50);
+        });
+
+        // onUrlChanged: Primary sync from did-change-url event
+        // NOTE: May fire BEFORE URL bar is injected (race condition)
+        // Fallback: goBack listener uses setTimeout + getUrl() after navigation
+        window.warpweb.onUrlChanged(({ key, url }) => {
+            const idx = parseInt(key.split('-').pop());
+            const urlInput = document.getElementById('url-input-' + idx);
+            if (urlInput) {
+                urlInput.value = url;
+            }
+        });
+
+        document.getElementById('tabs').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            switch (btn.dataset.action) {
+                case 'json': window.warpweb.showJsonEditor(); break;
+                case 'devtools': window.warpweb.openToplevelDevTools(); break;
+                case 'help': window.warpweb.showHelp(); break;
+            }
+        });
+
+
+
+        function sendLayoutHeights() {
+            const tabs = document.getElementById('tabs');
+            const container = document.getElementById('columns-container');
+            const status = document.querySelector('.status-bar');
+            const colHeader = document.querySelector('.col-header');
+            window.warpweb.setLayoutHeights({
+                tabs: tabs.offsetHeight,
+                statusBar: status.offsetHeight,
+                header: colHeader ? colHeader.offsetHeight : parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height')),
+                containerPadding: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--container-padding')),
+                scrollbar: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--scrollbar-height'))
+            });
+        }
+
+        setTimeout(() => {
+            sendLayoutHeights();
+        }, 500);
+    </script>
+</body>
+</html>

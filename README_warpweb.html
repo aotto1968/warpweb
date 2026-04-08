@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WarpWeb Help</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: #f5f5f5;
+            color: #333;
+        }
+        h1 { color: #0066cc; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+        h2 { color: #444; margin-top: 30px; }
+        h3 { color: #555; }
+        code { background: #e8e8e8; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        pre code { background: none; padding: 0; color: inherit; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        th { background: #e8e8e8; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        ul, ol { padding-left: 25px; }
+        li { margin: 5px 0; }
+        blockquote { border-left: 4px solid #0066cc; margin: 15px 0; padding: 10px 15px; background: #e8f4ff; }
+        a { color: #0066cc; }
+        hr { border: none; border-top: 1px solid #ccc; margin: 20px 0; }
+        .close-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .close-btn:hover { background: #0055aa; }
+    </style>
+</head>
+<body>
+    <button class="close-btn" onclick="window.close()">Close</button>
+    <h1>WarpWeb</h1>
+<p>A desktop application that aggregates multiple social media feeds into a single multi-column view, built with Electron.</p>
+<h2>Quick Start</h2>
+<h3>Installation</h3>
+<pre><code class="language-bash">./warpweb.sh setup   # First time only - installs dependencies
+./warpweb.sh         # Start the app
+</code></pre>
+<h3>Requirements</h3>
+<ul>
+<li><strong>Node.js</strong> 18+ (for building)</li>
+<li><strong>npm</strong> (comes with Node.js)</li>
+<li><strong>Electron</strong> (installed via <code>npm install</code>)</li>
+</ul>
+<h2>warpweb-data.json Configuration</h2>
+<p>The <code>warpweb-data.json</code> file defines all columns and categories displayed in the app.</p>
+<h3>Structure</h3>
+<pre><code class="language-json">{
+  &quot;config&quot;: {
+    &quot;columnWidth&quot;: 464,
+    &quot;partition&quot;: &quot;persist:warpweb-shared&quot;
+  },
+  &quot;entries&quot;: [
+    {
+      &quot;category&quot;: &quot;politik&quot;,
+      &quot;items&quot;: [
+        {
+          &quot;link&quot;: &quot;https://x.com/i/lists/743696354271072257&quot;,
+          &quot;name&quot;: &quot;partei1&quot;,
+          &quot;description&quot;: &quot;Description of this column&quot;
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<h3>Fields</h3>
+<h4>config</h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>config.columnWidth</code></td>
+<td>Default column width in pixels (default: 400)</td>
+</tr>
+<tr>
+<td><code>config.partition</code></td>
+<td>Default browser session partition for all columns</td>
+</tr>
+</tbody></table>
+<h4>entries (category groups)</h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>entries[].category</code></td>
+<td>Category name (shown as tab)</td>
+</tr>
+<tr>
+<td><code>entries[].items</code></td>
+<td>Array of column items in this category</td>
+</tr>
+</tbody></table>
+<h4>entries[].items (column items)</h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>items[].link</code></td>
+<td>URL to load (Twitter/X lists, Facebook, Instagram, any)</td>
+</tr>
+<tr>
+<td><code>items[].name</code></td>
+<td>Display name shown in column header</td>
+</tr>
+<tr>
+<td><code>items[].description</code></td>
+<td>Description (informational)</td>
+</tr>
+</tbody></table>
+<h3>Override System</h3>
+<p>Values can be overridden at multiple levels. Priority: <strong>item → category → config</strong></p>
+<h4>columnWidth Override</h4>
+<pre><code class="language-json">{
+  &quot;config&quot;: { &quot;columnWidth&quot;: 464 },
+  &quot;entries&quot;: [
+    {
+      &quot;category&quot;: &quot;politik&quot;,
+      &quot;columnWidth&quot;: 600,
+      &quot;items&quot;: [
+        { &quot;link&quot;: &quot;...&quot;, &quot;name&quot;: &quot;normal&quot; },
+        { &quot;link&quot;: &quot;...&quot;, &quot;name&quot;: &quot;wide&quot;, &quot;columnWidth&quot;: 800 }
+      ]
+    }
+  ]
+}
+</code></pre>
+<h4>partition Override (Browser Identity)</h4>
+<p>The <code>partition</code> setting creates separate browser sessions. This allows multiple accounts on the same website.</p>
+<pre><code class="language-json">{
+  &quot;config&quot;: { &quot;partition&quot;: &quot;persist:warpweb-shared&quot; },
+  &quot;entries&quot;: [
+    {
+      &quot;category&quot;: &quot;twitter-main&quot;,
+      &quot;partition&quot;: &quot;persist:main-account&quot;,
+      &quot;items&quot;: [ { &quot;link&quot;: &quot;https://x.com&quot;, &quot;name&quot;: &quot;main&quot; } ]
+    },
+    {
+      &quot;category&quot;: &quot;twitter-alt&quot;,
+      &quot;partition&quot;: &quot;persist:alt-account&quot;,
+      &quot;items&quot;: [ { &quot;link&quot;: &quot;https://x.com&quot;, &quot;name&quot;: &quot;alt&quot; } ]
+    }
+  ]
+}
+</code></pre>
+<h3>Example Configuration</h3>
+<pre><code class="language-json">{
+  &quot;config&quot;: {
+    &quot;columnWidth&quot;: 464,
+    &quot;partition&quot;: &quot;persist:warpweb-shared&quot;
+  },
+  &quot;entries&quot;: [
+    {
+      &quot;category&quot;: &quot;social&quot;,
+      &quot;items&quot;: [
+        { &quot;link&quot;: &quot;https://x.com&quot;,             &quot;name&quot;: &quot;twitter&quot;,   &quot;description&quot;: &quot;X&quot; },
+        { &quot;link&quot;: &quot;https://www.facebook.com&quot;,  &quot;name&quot;: &quot;facebook&quot;,  &quot;description&quot;: &quot;Facebook&quot; },
+        { &quot;link&quot;: &quot;https://www.instagram.com&quot;, &quot;name&quot;: &quot;instagram&quot;, &quot;description&quot;: &quot;Instagram&quot; }
+      ]
+    },
+    {
+      &quot;category&quot;: &quot;arbeit&quot;,
+      &quot;partition&quot;: &quot;persist:arbeit-account&quot;,
+      &quot;items&quot;: [
+        { &quot;link&quot;: &quot;https://x.com&quot;, &quot;name&quot;: &quot;arbeit1&quot; },
+        { &quot;link&quot;: &quot;https://x.com&quot;, &quot;name&quot;: &quot;arbeit2&quot;, &quot;columnWidth&quot;: 664 }
+      ]
+    }
+  ]
+}
+</code></pre>
+<h2>Features</h2>
+<ul>
+<li><strong>Multi-column layout</strong> - View multiple feeds side by side</li>
+<li><strong>Category tabs</strong> - Organize columns by topic</li>
+<li><strong>BrowserView technology</strong> - Embedded web content with full interactivity</li>
+<li><strong>Column controls</strong> - Back, reload, and fullscreen toggle per column</li>
+<li><strong>Responsive resize</strong> - Columns adapt to window size</li>
+<li><strong>Horizontal scroll</strong> - Navigate many columns with scrollbar</li>
+<li><strong>JSON Editor</strong> - Edit configuration directly in the app (BrowserView tab)</li>
+<li><strong>Help viewer</strong> - Full documentation in BrowserView tab</li>
+<li><strong>Keyboard shortcuts</strong> - Ctrl+Shift+I for DevTools, Ctrl+Shift+E for JSON Editor</li>
+<li><strong>Single-column mode (large-btn)</strong> - Full-width view with URL bar</li>
+<li><strong>URL bar</strong> - Shows current URL, allows navigation, maintains history</li>
+</ul>
+<h2>Header Buttons</h2>
+<p>Three SVG icon buttons on the right side of the header:</p>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>Icon</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>JSON Editor</td>
+<td>file/doc icon</td>
+<td>Opens config editor as BrowserView tab</td>
+</tr>
+<tr>
+<td>DevTools</td>
+<td>wrench icon</td>
+<td>Opens detached DevTools window</td>
+</tr>
+<tr>
+<td>Help</td>
+<td>circle-? icon</td>
+<td>Opens documentation as BrowserView tab</td>
+</tr>
+</tbody></table>
+<p>Click JSON Editor or Help again to close the tab.</p>
+<h2>Keyboard Shortcuts</h2>
+<table>
+<thead>
+<tr>
+<th>Shortcut</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Ctrl+Shift+I</code></td>
+<td>Toggle detached DevTools</td>
+</tr>
+<tr>
+<td><code>Ctrl+Shift+E</code></td>
+<td>Open JSON Editor tab</td>
+</tr>
+</tbody></table>
+<h2>Single-Column Mode (Large View)</h2>
+<p>Click the <strong>large-btn (⤢)</strong> in a column header to enter single-column mode. The column expands to full window width.</p>
+<h3>URL Bar</h3>
+<p>In single-column mode, a URL input field appears in the column header between the column name and the back button:</p>
+<pre><code>[col-name] | [URL input....................] | [←] | [⟳] | [⤢]
+</code></pre>
+<h3>URL Bar Features</h3>
+<ul>
+<li><strong>Current URL display</strong> - Shows the URL of the page currently loaded in the BrowserView</li>
+<li><strong>Manual navigation</strong> - Type a URL and press Enter to load it</li>
+<li><strong>URL history</strong> - Navigate through previously entered URLs</li>
+</ul>
+<h3>URL History Navigation</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>PageUp</code></td>
+<td>Go to older URL in history</td>
+</tr>
+<tr>
+<td><code>PageDown</code></td>
+<td>Go to newer URL in history (or clear input)</td>
+</tr>
+<tr>
+<td><code>Enter</code></td>
+<td>Load the typed URL and add it to history</td>
+</tr>
+</tbody></table>
+<p>URL history is stored per column in localStorage and persists across app restarts.</p>
+<h3>Single-Column Identity</h3>
+<p>Each column in WarpWeb has its own browser session (partition). This means:</p>
+<ul>
+<li><strong>Separate logins</strong> - Each column can be logged into a different account on the same website</li>
+<li><strong>Independent cookies</strong> - Sessions do not share cookies</li>
+<li><strong>Dedicated passwords</strong> - Password managers work per-column</li>
+</ul>
+<p>Single-column mode exposes this column identity with its own URL bar and history.</p>
+<h2>Installation &amp; Maintenance</h2>
+<h3>Development Mode</h3>
+<pre><code class="language-bash">cd warpweb
+npm start         # Standard launch
+npm run dev       # Launch with DevTools open
+</code></pre>
+<h3>Updating Dependencies</h3>
+<pre><code class="language-bash">./warpweb.sh setup
+</code></pre>
+<p>Or manually:</p>
+<pre><code class="language-bash">cd warpweb
+npm install       # Update node_modules
+</code></pre>
+<h3>Building Installers</h3>
+<p>Requires running on the target platform:</p>
+<pre><code class="language-bash">cd warpweb
+
+# Linux
+npm run build:linux
+
+# Windows (on Windows)
+npm run build:win
+
+# macOS (on Mac)
+npm run build:mac
+</code></pre>
+<p>Outputs are placed in <code>warpweb/dist/</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Format</th>
+<th>File</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Linux</td>
+<td>AppImage</td>
+<td><code>WarpWeb-1.0.0.AppImage</code></td>
+</tr>
+<tr>
+<td>Linux</td>
+<td>Debian</td>
+<td><code>warpweb_1.0.0_amd64.deb</code></td>
+</tr>
+<tr>
+<td>Windows</td>
+<td>NSIS Installer</td>
+<td><code>WarpWeb-1.0.0.exe</code></td>
+</tr>
+<tr>
+<td>macOS</td>
+<td>DMG</td>
+<td><code>WarpWeb-1.0.0.dmg</code></td>
+</tr>
+</tbody></table>
+<h2>Security</h2>
+<h3>Data Storage</h3>
+<p><strong>No sensitive data is stored by WarpWeb itself.</strong> However, be aware of the following:</p>
+<h4>Browser Session Data</h4>
+<p>WarpWeb uses Electron&#39;s BrowserView with <strong>persistent partitions</strong>. By default, all columns share one session (<code>persist:warpweb-shared</code>), but you can configure separate partitions per category or item to use multiple accounts:</p>
+<ul>
+<li>Login sessions for websites (Twitter/X, Facebook, etc.) may be stored in the browser profile</li>
+<li>Cookies and local storage persist between app launches</li>
+<li>Separate partitions = separate sessions (e.g., multiple Twitter accounts)</li>
+<li>Location: <code>~/.config/warpweb/</code> (Linux), <code>%APPDATA%\warpweb\</code> (Windows), <code>~/Library/Application Support/warpweb/</code> (macOS)</li>
+</ul>
+<h4>Configuration File (warpweb-data.json)</h4>
+<ul>
+<li>Contains only public URLs and column definitions</li>
+<li><strong>No credentials or tokens stored</strong></li>
+<li>User controls this file completely</li>
+</ul>
+<h4>Log Files</h4>
+<ul>
+<li>Location: <code>logs/warpweb.log</code></li>
+<li>Contains: Timestamps, loaded URLs, errors</li>
+<li><strong>No sensitive data is logged</strong> (only URLs which are already public)</li>
+</ul>
+<h3>Software Sources</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Source</th>
+<th>License</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>WarpWeb</td>
+<td>This project (you)</td>
+<td>MIT</td>
+</tr>
+<tr>
+<td>Electron</td>
+<td>electron-builder packages</td>
+<td>MIT</td>
+</tr>
+<tr>
+<td>Node.js</td>
+<td>nodejs.org</td>
+<td>MIT</td>
+</tr>
+</tbody></table>
+<h3>Best Practices</h3>
+<ol>
+<li><p><strong>Close sessions when done</strong> - If using WarpWeb on a shared computer, close the app completely to clear session data</p>
+</li>
+<li><p><strong>No built-in authentication</strong> - WarpWeb relies on the websites&#39; own login systems. Always log out of websites when finished if on a shared device</p>
+</li>
+<li><p><strong>URLs are visible</strong> - Anyone with access to <code>warpweb-data.json</code> can see which sources you follow</p>
+</li>
+<li><p><strong>App data location</strong> - To completely clear all stored session data:</p>
+<pre><code class="language-bash"># Linux
+rm -rf ~/.config/warpweb/
+
+# macOS
+rm -rf ~/Library/Application\ Support/warpweb/
+
+# Windows
+rmdir /s %APPDATA%\warpweb\
+</code></pre>
+</li>
+</ol>
+<h2>Troubleshooting</h2>
+<h3>&quot;Electron not found&quot;</h3>
+<p>Run the setup command first:</p>
+<pre><code class="language-bash">./warpweb.sh setup
+</code></pre>
+<h3>Columns don&#39;t load</h3>
+<ul>
+<li>Check your internet connection</li>
+<li>Verify URLs in <code>warpweb-data.json</code> are correct</li>
+<li>Check <code>logs/warpweb.log</code> for error details</li>
+</ul>
+<h3>App crashes or hangs</h3>
+<ol>
+<li>Close the app completely</li>
+<li>Check logs: <code>logs/warpweb.log</code></li>
+<li>Try clearing BrowserView data by deleting the app config directory (see above)</li>
+</ol>
+<h2>App Icon</h2>
+<p>The app icon is defined in <code>package.json</code> under <code>build.icon</code>. </p>
+<p>To change the icon:</p>
+<ol>
+<li>Replace or add icon file in project root</li>
+<li>Update path in <code>package.json</code> <code>build.icon</code> field</li>
+<li>Rebuild: <code>npm run build:linux</code></li>
+</ol>
+<p>Supported formats: PNG (recommended 512x512), ICO (Windows).</p>
+<h2>Layout Configuration</h2>
+<p>Layout values are defined as CSS Custom Properties in <code>index.html</code>:</p>
+<pre><code class="language-css">:root {
+    --tabs-height: 38px;
+    --header-height: 24px;
+    --status-bar-height: 27px;
+    --container-padding: 4px;
+    --scrollbar-height: 12px;
+}
+</code></pre>
+<h3>How It Works</h3>
+<ol>
+<li><strong>CSS</strong> defines the visual layout as Custom Properties</li>
+<li><strong>Renderer</strong> measures actual rendered heights and sends to Main</li>
+<li><strong>Main Process</strong> uses these heights for exact BrowserView positioning</li>
+</ol>
+<h3>Customizing Layout</h3>
+<p>Edit the CSS variables in <code>index.html</code>, then restart the app.</p>
+<h2>Architecture</h2>
+<pre><code>warpweb/
+├── src/
+│   ├── main.js      # Electron main process, BrowserView management
+│   └── preload.js   # IPC bridge (context isolation)
+├── index.html       # UI with Flexbox layout
+├── json-editor.html # JSON configuration editor (Ace Editor)
+├── README_warpweb.html # Pre-converted help documentation
+├── package.json     # Dependencies and build config
+└── dist/            # Built installers (after build)
+</code></pre>
+<h2>License</h2>
+<p>MIT License - See project repository for details.</p>
+
+</body>
+</html>

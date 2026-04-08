@@ -1,0 +1,25 @@
+{
+  "config": {
+    "columnWidth": 464
+  },
+  "entries": [
+    {   
+      "link":  "https://x.com",                              
+      "category":  "social",      
+      "name":  "twitter",       
+      "description": "X social media" 
+    },
+    {   
+      "link":  "https://www.facebook.com",                   
+      "category":  "social",      
+      "name":  "facebook",      
+      "description": "facebook social media" 
+    },
+    {   
+      "link":  "https://www.instagram.com",                  
+      "category":  "social",      
+      "name":  "instagram",     
+      "description": "instagram social media" 
+    }
+  ]
+}
