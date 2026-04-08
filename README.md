@@ -415,7 +415,7 @@ warpweb/
 │   └── preload.js   # IPC bridge (context isolation)
 ├── index.html       # UI with Flexbox layout
 ├── json-editor.html # JSON configuration editor (Ace Editor)
-├── README.html         # Pre-converted help documentation
+├── README.md           # Main documentation
 ├── package.json     # Dependencies and build config
 └── dist/            # Built installers (after build)
 ```
