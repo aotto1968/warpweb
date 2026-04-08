@@ -89,6 +89,40 @@
             background: #d8d8d8;
         }
 
+        .help-header {
+            display: none;
+            align-items: center;
+            padding: 8px 12px;
+            background: #0066cc;
+            color: white;
+            flex-shrink: 0;
+            min-height: var(--tabs-height);
+        }
+
+        .help-header.visible {
+            display: flex;
+        }
+
+        .help-header-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .help-close-btn {
+            margin-left: auto;
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .help-close-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
         .columns-container {
             flex: 1;
             display: flex;
@@ -270,6 +304,10 @@
                 <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" fill="#666"/></svg>
             </button>
         </div>
+    </div>
+    <div class="help-header" id="help-header">
+        <span class="help-header-title">Help — WarpWeb Documentation</span>
+        <button class="help-close-btn" id="help-close-btn">Close</button>
     </div>
     <div class="columns-container" id="columns-container"></div>
     <div class="status-bar">
@@ -650,6 +688,20 @@
                 case 'devtools': window.warpweb.openToplevelDevTools(); break;
                 case 'help': window.warpweb.showHelp(); break;
             }
+        });
+
+        document.getElementById('help-close-btn').addEventListener('click', () => {
+            window.warpweb.showHelp();
+        });
+
+        window.warpweb.onHelpVisibilityChanged((visible) => {
+            const helpHeader = document.getElementById('help-header');
+            if (visible) {
+                helpHeader.classList.add('visible');
+            } else {
+                helpHeader.classList.remove('visible');
+            }
+            setTimeout(sendLayoutHeights, 50);
         });
 
 

@@ -461,12 +461,14 @@ ipcMain.handle('save-url-history', (event, { columnIndex, history }) => {
 });
 
 const HELP_URL = 'https://github.com/aotto1968/warpweb/blob/master/README.md';
+const HELP_HEADER_HEIGHT = 38;
 
 ipcMain.on('show-help', (event) => {
     if (helpView) {
         mainWindow.removeBrowserView(helpView);
         helpView.webContents?.destroy();
         helpView = null;
+        event.sender.send('help-visibility-changed', false);
         return;
     }
 
@@ -479,14 +481,31 @@ ipcMain.on('show-help', (event) => {
     });
     mainWindow.addBrowserView(helpView);
     const [width, height] = mainWindow.getContentSize();
-    helpView.setBounds({ x: 0, y: 0, width, height });
+    helpView.setBounds({ x: 0, y: HELP_HEADER_HEIGHT, width, height: height - HELP_HEADER_HEIGHT });
+
     helpView.webContents.loadURL(HELP_URL);
 
     helpView.webContents.on('did-finish-load', () => {
         logStream.write('[Info] Help page loaded\n');
     });
 
+    helpView.webContents.on('close', () => {
+        mainWindow.removeBrowserView(helpView);
+        helpView.webContents?.destroy();
+        helpView = null;
+        event.sender.send('help-visibility-changed', false);
+    });
+
+    event.sender.send('help-visibility-changed', true);
     logStream.write('[Info] Showing help view\n');
+});
+
+ipcMain.on('help-close', () => {
+    if (helpView) {
+        mainWindow.removeBrowserView(helpView);
+        helpView.webContents?.destroy();
+        helpView = null;
+    }
 });
 
 ipcMain.handle('get-data', () => {

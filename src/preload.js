@@ -35,6 +35,8 @@ contextBridge.exposeInMainWorld('warpweb', {
     setLayoutHeights: (heights) => ipcRenderer.send('set-layout-heights', heights),
     /** Show help documentation */
     showHelp: () => ipcRenderer.send('show-help'),
+    /** @param {function(boolean)} callback */
+    onHelpVisibilityChanged: (callback) => ipcRenderer.on('help-visibility-changed', (event, visible) => callback(visible)),
     /** Open JSON editor for full configuration */
     showJsonEditor: () => ipcRenderer.send('show-json-editor'),
     /** @returns {Promise<string>} */
