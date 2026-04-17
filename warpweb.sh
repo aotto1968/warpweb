@@ -19,7 +19,19 @@ ACTION="fg"
 
 for arg in "$@"; do
     case "$arg" in
-        -h|--help)
+        setup)
+            echo "Installing Electron dependencies..."
+            npm install
+            echo "Setup complete."
+            exit 0
+            ;;
+        --prod|--test|--dist)
+            MODE="${arg#--}"
+            ;;
+        bg|fg)
+            ACTION="$arg"
+            ;;
+        -h|--help|*)
             echo "Usage: $0 [options] [action]"
             echo ""
             echo "Options:"
@@ -37,18 +49,6 @@ for arg in "$@"; do
             echo "  $0 --test bg          Start with test data in background"
             echo "  $0 --dist fg          Start packaged app in foreground"
             exit 0
-            ;;
-        setup)
-            echo "Installing Electron dependencies..."
-            npm install
-            echo "Setup complete."
-            exit 0
-            ;;
-        --prod|--test|--dist)
-            MODE="${arg#--}"
-            ;;
-        bg|fg)
-            ACTION="$arg"
             ;;
     esac
 done

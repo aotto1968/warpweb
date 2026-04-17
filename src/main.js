@@ -121,6 +121,9 @@ function createWindow() {
         }
     });
 
+    const { Menu } = require('electron');
+    Menu.setApplicationMenu(null);
+
     let resizeTimeout;
     mainWindow.on('resized', () => {
         clearTimeout(resizeTimeout);
