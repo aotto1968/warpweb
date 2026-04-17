@@ -30,6 +30,10 @@ let columnConfigCache = new Map();
 let dataHash = null;
 let helpView = null;
 let jsonEditorView = null;
+let zoomFactor = 1.0;
+const ZOOM_STEP = 0.1;
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 3.0;
 
 function shouldRebuildCache(data) {
     const hash = JSON.stringify(data.entries || data);
@@ -149,6 +153,14 @@ function createWindow() {
             } else if (input.key.toLowerCase() === 'd') {
                 event.preventDefault();
                 logLayoutDebug();
+            }
+        } else if (input.type === 'keyDown' && input.control && !input.shift) {
+            if (input.key === '=' || input.key === '+' || input.key === 'Add') {
+                event.preventDefault();
+                zoomIn();
+            } else if (input.key === '-' || input.key === 'Subtract') {
+                event.preventDefault();
+                zoomOut();
             }
         }
     });
@@ -432,6 +444,24 @@ ipcMain.on('reload-url', (event, columnIndex) => {
         view.webContents.reload();
     }
 });
+
+function zoomIn() {
+    if (largeColumnKey === null) return;
+    const view = browserViews.get(largeColumnKey);
+    if (!view || !view.webContents) return;
+    zoomFactor = Math.min(zoomFactor + ZOOM_STEP, MAX_ZOOM);
+    view.webContents.setZoomFactor(zoomFactor);
+    logStream.write(`[Info] Zoom in: ${zoomFactor}\n`);
+}
+
+function zoomOut() {
+    if (largeColumnKey === null) return;
+    const view = browserViews.get(largeColumnKey);
+    if (!view || !view.webContents) return;
+    zoomFactor = Math.max(zoomFactor - ZOOM_STEP, MIN_ZOOM);
+    view.webContents.setZoomFactor(zoomFactor);
+    logStream.write(`[Info] Zoom out: ${zoomFactor}\n`);
+}
 
 ipcMain.on('toggle-large', (event, columnIndex) => {
     const key = `${currentCategory}-${columnIndex}`;

@@ -153,6 +153,7 @@ The `partition` setting creates separate browser sessions. This allows multiple 
 - **Help viewer** - Full documentation in BrowserView tab (uses single-column layout with URL bar)
 - **Keyboard shortcuts** - Ctrl+Shift+I for DevTools, Ctrl+Shift+E for JSON Editor
 - **Single-column mode (large-btn)** - Full-width view with URL bar
+- **Zoom content** - Ctrl++/Ctrl+- in single-column mode to zoom in/out
 - **URL bar** - Shows current URL, allows navigation, maintains history
 
 ## Header Buttons
@@ -196,6 +197,8 @@ The Help viewer displays the GitHub README documentation in a BrowserView. It us
 | -------------- | ------------------------ |
 | `Ctrl+Shift+I` | Toggle detached DevTools |
 | `Ctrl+Shift+E` | Open JSON Editor tab     |
+| `Ctrl++`       | Zoom in (single-column mode) |
+| `Ctrl+-`       | Zoom out (single-column mode) |
 
 ## Single-Column Mode (Large View)
 
@@ -225,7 +228,20 @@ In single-column mode, a URL input field appears in the column header between th
 
 URL history is stored per column in localStorage and persists across app restarts.
 
-### Single-Column Identity
+### Zoom Content (Single-Column Mode)
+
+In single-column mode, you can zoom the content larger or smaller:
+
+| Shortcut   | Action         |
+| ---------- | -------------- |
+| `Ctrl++`   | Zoom in (+10%) |
+| `Ctrl+-`   | Zoom out (-10%) |
+
+**Range:** 50% – 300% zoom
+
+Zoom applies only to the active single-column view and resets when switching columns.
+
+## Single-Column Identity
 
 Each column in WarpWeb has its own browser session (partition). This means:
 
