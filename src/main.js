@@ -62,7 +62,14 @@ function initLogging() {
         fs.mkdirSync(logsDir, { recursive: true });
     }
     const logFile = path.join(logsDir, 'warpweb.log');
-    logStream = fs.createWriteStream(logFile, { flags: 'a' });
+    const logOldFile = path.join(logsDir, 'warpweb.log.old');
+    if (fs.existsSync(logFile)) {
+        if (fs.existsSync(logOldFile)) {
+            fs.unlinkSync(logOldFile);
+        }
+        fs.renameSync(logFile, logOldFile);
+    }
+    logStream = fs.createWriteStream(logFile, { flags: 'w' });
     logStream.write(`\n=== WarpWeb started at ${new Date().toISOString()} ===\n`);
     logStream.write(`[Info] Log file: ${logFile}\n`);
 }
@@ -164,7 +171,27 @@ function createWindow() {
             } else if (input.key === '-' || input.key === 'Subtract') {
                 event.preventDefault();
                 zoomOut();
+            } else if (input.key === '0') {
+                event.preventDefault();
+                zoomReset();
             }
+        }
+    });
+
+    mainWindow.webContents.on('zoom-changed', (event, zoomDirection) => {
+        setTimeout(() => {
+            positionBrowserViews();
+            logStream.write(`[Info] Zoom changed (menu): ${mainWindow.webContents.getZoomFactor()}\n`);
+        }, 10);
+    });
+
+    mainWindow.webContents.on('render-process-gone', (event, details) => {
+        logStream.write(`[Error] Renderer process gone: ${details.reason}\n`);
+    });
+
+    mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+        if (level >= 2) {
+            logStream.write(`[Renderer ${level}] ${message} (line ${line})\n`);
         }
     });
 
@@ -315,49 +342,151 @@ const LAYOUT_CONFIG = {
 
 let layoutHeights = { ...LAYOUT_CONFIG };
 
+/**
+ * LAYOUT & ZOOM ARCHITECTURE
+ *
+ * WarpWeb uses a DOM-based positioning system for BrowserViews:
+ *
+ * 1. DOM-BASED POSITIONING (positionBrowserViews)
+ *    - BrowserViews are positioned by querying the DOM (index.html) for exact element bounds
+ *    - We read getBoundingClientRect() from the renderer via executeJavaScript()
+ *    - This ensures BrowserViews align perfectly with the CSS flexbox layout
+ *
+ * 2. ZOOM HANDLING
+ *    - Electron's zoomFactor affects CSS pixel values returned by getBoundingClientRect()
+ *    - At zoom=1.0: CSS pixels = physical pixels
+ *    - At zoom=1.1: containerBounds.width = 1090 (1200/1.1) - DOM reports CSS pixels
+ *    - BrowserView.setBounds() requires PHYSICAL pixels
+ *    - Solution: multiply bounds by zoomFactor when setting BrowserView bounds
+ *
+ * 3. INFORMATION FLOW
+ *    Renderer (index.html)
+ *      → CSS flexbox layout defines column positions
+ *      → DOM elements have bounds (CSS pixels, affected by zoom)
+ *      → Main process queries via executeJavaScript()
+ *      → Main process multiplies by zoomFactor
+ *      → Main process calls BrowserView.setBounds() with physical pixels
+ *
+ * 4. ZOOM MODES
+ *    Single-column (largeColumnKey set):
+ *      - BrowserView covers only the content area (below column header)
+ *      - Column header (with URL bar) is a DOM overlay - always visible
+ *      - Zoom applies to BrowserView content via webContents.setZoomFactor()
+ *
+ *    Multi-column (largeColumnKey null):
+ *      - Each BrowserView positioned on its column's placeholder element
+ *      - Bounds scaled by zoomFactor for physical pixel correct positioning
+ *      - Zoom applies to main window, columns scale proportionally
+ *
+ * 5. KEY COORDINATE SYSTEMS
+ *    - CSS pixels: returned by getBoundingClientRect(), affected by zoom
+ *    - Physical pixels: actual screen pixels, used by BrowserView.setBounds()
+ *    - Conversion: physical = css * zoomFactor
+ */
+
 function logLayoutDebug() {
     if (!mainWindow || mainWindow.isDestroyed()) {
         logStream.write('[Debug] mainWindow is null or destroyed\n');
         return;
     }
     const [windowWidth, windowHeight] = mainWindow.getContentSize();
+    const zoomFactor = largeColumnKey === null ? mainWindow.webContents.getZoomFactor() : 1.0;
     logStream.write(`\n=== LAYOUT DEBUG ===\n`);
     logStream.write(`windowSize: ${windowWidth}x${windowHeight}\n`);
+    logStream.write(`zoomFactor: ${zoomFactor}\n`);
     logStream.write(`largeColumnKey: ${largeColumnKey}\n`);
+    logStream.write(`currentCategory: ${currentCategory}\n`);
     logStream.write(`layoutHeights: tabs=${layoutHeights.tabs}, header=${layoutHeights.header}, statusBar=${layoutHeights.statusBar}, containerPadding=${layoutHeights.containerPadding}, scrollbar=${layoutHeights.scrollbar}\n`);
-    const tabsHeight = largeColumnKey !== null ? 0 : layoutHeights.tabs;
-    const yOffset = tabsHeight + layoutHeights.containerPadding + layoutHeights.header;
-    const scrollbarHeight = scrollbarVisible ? layoutHeights.scrollbar : 0;
-    const contentHeight = windowHeight - yOffset - layoutHeights.statusBar - scrollbarHeight;
-    logStream.write(`computed: tabsHeight=${tabsHeight}, yOffset=${yOffset}, scrollbarHeight=${scrollbarHeight}, contentHeight=${contentHeight}\n`);
-    for (const [key, view] of browserViews) {
-        const [viewCategory, idxStr] = key.split('-');
-        const isCurrentCategory = viewCategory === currentCategory;
-        const isLarge = largeColumnKey === key;
-        const bounds = view.getBounds();
-        logStream.write(`view ${key}: category=${viewCategory} current=${isCurrentCategory} large=${isLarge} bounds=${JSON.stringify(bounds)}\n`);
-    }
-    logStream.write(`==================\n\n`);
+
+    mainWindow.webContents.executeJavaScript(`
+        (function() {
+            const result = {};
+            const tabs = document.getElementById('tabs');
+            const columnsContainer = document.getElementById('columns-container');
+            const statusBar = document.querySelector('.status-bar');
+            const columns = document.querySelectorAll('.column');
+
+            result.tabsBounds = tabs ? JSON.stringify(tabs.getBoundingClientRect()) : null;
+            result.containerBounds = columnsContainer ? JSON.stringify(columnsContainer.getBoundingClientRect()) : null;
+            result.statusBarBounds = statusBar ? JSON.stringify(statusBar.getBoundingClientRect()) : null;
+            result.columns = [];
+            columns.forEach((col, i) => {
+                const header = col.querySelector('.col-header');
+                const placeholder = col.querySelector('.col-placeholder');
+                result.columns.push({
+                    index: i,
+                    bounds: JSON.stringify(col.getBoundingClientRect()),
+                    headerBounds: header ? JSON.stringify(header.getBoundingClientRect()) : null,
+                    placeholderBounds: placeholder ? JSON.stringify(placeholder.getBoundingClientRect()) : null
+                });
+            });
+            return JSON.stringify(result, null, 2);
+        })()
+    `).then(json => {
+        logStream.write('DOM bounds (from renderer):\\n' + json + '\\n');
+        logStream.write('==================\\n\\n');
+    }).catch(e => {
+        logStream.write('DOM query failed: ' + e.message + '\\n');
+        logStream.write('==================\\n\\n');
+    });
 }
 
-function positionBrowserViews() {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-
-    let windowWidth, windowHeight;
-    try {
-        ([windowWidth, windowHeight] = mainWindow.getContentSize());
-    } catch (e) {
-        logStream.write(`[Error] Failed to get window size: ${e.message}\n`);
+function positionBrowserViews(retryCount = 0) {
+    if (!mainWindow || mainWindow.isDestroyed() || !mainWindow.webContents) {
         return;
     }
 
-    const tabsHeight = largeColumnKey !== null ? 0 : layoutHeights.tabs;
-    const yOffset = tabsHeight + layoutHeights.containerPadding + layoutHeights.header;
-    const scrollbarHeight = scrollbarVisible ? layoutHeights.scrollbar : 0;
-    const height = windowHeight - yOffset - layoutHeights.statusBar - scrollbarHeight;
+    if (browserViews.size === 0) {
+        return;
+    }
 
-    for (const [key, view] of browserViews) {
-        try {
+    mainWindow.webContents.executeJavaScript(`
+        (function() {
+            const container = document.getElementById('columns-container');
+            if (!container) return null;
+            const columns = document.querySelectorAll('.column');
+            const tabs = document.getElementById('tabs');
+            const statusBar = document.querySelector('.status-bar');
+            const containerRect = container.getBoundingClientRect();
+            const result = {
+                containerBounds: { left: containerRect.left, top: containerRect.top, width: containerRect.width, height: containerRect.height },
+                tabsBounds: null,
+                statusBarBounds: null,
+                columnCount: columns.length,
+                columns: []
+            };
+            if (tabs) {
+                const r = tabs.getBoundingClientRect();
+                result.tabsBounds = { left: r.left, top: r.top, width: r.width, height: r.height };
+            }
+            if (statusBar) {
+                const r = statusBar.getBoundingClientRect();
+                result.statusBarBounds = { left: r.left, top: r.top, width: r.width, height: r.height };
+            }
+            columns.forEach((col, i) => {
+                const placeholder = col.querySelector('.col-placeholder');
+                const colRect = col.getBoundingClientRect();
+                const placeholderRect = placeholder ? placeholder.getBoundingClientRect() : null;
+                result.columns.push({
+                    index: i,
+                    bounds: { left: colRect.left, top: colRect.top, width: colRect.width, height: colRect.height },
+                    placeholderBounds: placeholderRect ? { left: placeholderRect.left, top: placeholderRect.top, width: placeholderRect.width, height: placeholderRect.height } : null
+                });
+            });
+            return result;
+        })()
+    `).then(data => {
+        if (!data) {
+            if (retryCount < 3) {
+                setTimeout(() => positionBrowserViews(retryCount + 1), 100);
+            }
+            return;
+        }
+
+        const zoom = mainWindow.webContents.getZoomFactor();
+        const gap = 8;
+
+        for (const [key, view] of browserViews) {
             const [viewCategory, idxStr] = key.split('-');
             const columnIndex = parseInt(idxStr);
 
@@ -371,38 +500,33 @@ function positionBrowserViews() {
                 continue;
             }
 
-            if (largeColumnKey === key) {
-                view.setBounds({
-                    x: 0,
-                    y: yOffset,
-                    width: windowWidth,
-                    height: height
-                });
-            } else {
-                // NOTE: O(n²) calculation per resize, but:
-                // - Only runs for current category (others just hidden with x:-9999)
-                // - Typical use case: <10 columns per category
-                // - Categories exist precisely to limit column count
-                // - Optimization (prefix sum cache) only needed for 20+ columns
-                const cw = getColumnWidthForKey(key);
-                let x = layoutHeights.containerPadding - scrollX;
-                for (let i = 0; i < columnIndex; i++) {
-                    const prevKey = `${viewCategory}-${i}`;
-                    const prevCw = getColumnWidthForKey(prevKey);
-                    x += prevCw + 8;
-                }
-                view.setBounds({
-                    x: x,
-                    y: yOffset,
-                    width: cw,
-                    height: height
-                });
+            const colData = data.columns[columnIndex];
+            if (!colData || !colData.placeholderBounds) {
+                continue;
             }
 
-        } catch (e) {
-            logStream.write(`[Error] Failed to position view ${key}: ${e.message}\n`);
+            const colWidth = colData.placeholderBounds.width * zoom;
+            let xPos = data.containerBounds.left + layoutHeights.containerPadding - scrollX;
+            for (let i = 0; i < columnIndex; i++) {
+                const prevCol = data.columns[i];
+                if (prevCol && prevCol.placeholderBounds) {
+                    xPos += prevCol.placeholderBounds.width * zoom + gap;
+                }
+            }
+
+            let b;
+            if (largeColumnKey === key) {
+                const contentTop = colData.placeholderBounds.top * zoom;
+                const contentHeight = colData.placeholderBounds.height * zoom;
+                b = { x: 0, y: contentTop, width: data.containerBounds.width * zoom, height: contentHeight };
+            } else {
+                b = { x: xPos, y: colData.placeholderBounds.top * zoom, width: colWidth, height: colData.placeholderBounds.height * zoom };
+            }
+            view.setBounds(b);
         }
-    }
+    }).catch(e => {
+        logStream.write(`[Error] positionBrowserViews: ${e.message}\n`);
+    });
 }
 
 function showCategory(category) {
@@ -449,21 +573,48 @@ ipcMain.on('reload-url', (event, columnIndex) => {
 });
 
 function zoomIn() {
-    if (largeColumnKey === null) return;
-    const view = browserViews.get(largeColumnKey);
-    if (!view || !view.webContents) return;
-    zoomFactor = Math.min(zoomFactor + ZOOM_STEP, MAX_ZOOM);
-    view.webContents.setZoomFactor(zoomFactor);
-    logStream.write(`[Info] Zoom in: ${zoomFactor}\n`);
+    if (largeColumnKey !== null) {
+        const view = browserViews.get(largeColumnKey);
+        if (!view || !view.webContents) return;
+        zoomFactor = Math.min(zoomFactor + ZOOM_STEP, MAX_ZOOM);
+        view.webContents.setZoomFactor(zoomFactor);
+        logStream.write(`[Info] Zoom in (single): ${zoomFactor}\n`);
+    } else {
+        const currentZoom = mainWindow.webContents.getZoomFactor();
+        mainWindow.webContents.setZoomFactor(currentZoom + ZOOM_STEP);
+        logStream.write(`[Info] Zoom in (multi): ${currentZoom + ZOOM_STEP}\n`);
+        positionBrowserViews();
+    }
 }
 
 function zoomOut() {
-    if (largeColumnKey === null) return;
-    const view = browserViews.get(largeColumnKey);
-    if (!view || !view.webContents) return;
-    zoomFactor = Math.max(zoomFactor - ZOOM_STEP, MIN_ZOOM);
-    view.webContents.setZoomFactor(zoomFactor);
-    logStream.write(`[Info] Zoom out: ${zoomFactor}\n`);
+    if (largeColumnKey !== null) {
+        const view = browserViews.get(largeColumnKey);
+        if (!view || !view.webContents) return;
+        zoomFactor = Math.max(zoomFactor - ZOOM_STEP, MIN_ZOOM);
+        view.webContents.setZoomFactor(zoomFactor);
+        logStream.write(`[Info] Zoom out (single): ${zoomFactor}\n`);
+    } else {
+        const currentZoom = mainWindow.webContents.getZoomFactor();
+        const newZoom = Math.max(currentZoom - ZOOM_STEP, MIN_ZOOM);
+        mainWindow.webContents.setZoomFactor(newZoom);
+        logStream.write(`[Info] Zoom out (multi): ${newZoom}\n`);
+        positionBrowserViews();
+    }
+}
+
+function zoomReset() {
+    if (largeColumnKey !== null) {
+        const view = browserViews.get(largeColumnKey);
+        if (!view || !view.webContents) return;
+        zoomFactor = 1.0;
+        view.webContents.setZoomFactor(zoomFactor);
+        logStream.write(`[Info] Zoom reset (single): ${zoomFactor}\n`);
+    } else {
+        mainWindow.webContents.setZoomFactor(1.0);
+        logStream.write(`[Info] Zoom reset (multi): 1.0\n`);
+        positionBrowserViews();
+    }
 }
 
 ipcMain.on('toggle-large', (event, columnIndex) => {

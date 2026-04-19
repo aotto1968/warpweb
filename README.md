@@ -153,7 +153,7 @@ The `partition` setting creates separate browser sessions. This allows multiple 
 - **Help viewer** - Full documentation in BrowserView tab (uses single-column layout with URL bar)
 - **Keyboard shortcuts** - Ctrl+Shift+I for DevTools, Ctrl+Shift+E for JSON Editor
 - **Single-column mode (large-btn)** - Full-width view with URL bar
-- **Zoom content** - Ctrl++/Ctrl+- in single-column mode to zoom in/out
+- **Zoom** - Ctrl++/Ctrl+-Ctrl+0 works in both single-column and multi-column modes
 - **URL bar** - Shows current URL, allows navigation, maintains history
 
 ## Header Buttons
@@ -193,12 +193,14 @@ The Help viewer displays the GitHub README documentation in a BrowserView. It us
 
 ## Keyboard Shortcuts
 
-| Shortcut       | Action                   |
-| -------------- | ------------------------ |
-| `Ctrl+Shift+I` | Toggle detached DevTools |
-| `Ctrl+Shift+E` | Open JSON Editor tab     |
-| `Ctrl++`       | Zoom in (single-column mode) |
-| `Ctrl+-`       | Zoom out (single-column mode) |
+| Shortcut       | Action                                      |
+| -------------- | ------------------------------------------- |
+| `Ctrl+Shift+I` | Toggle detached DevTools                    |
+| `Ctrl+Shift+E` | Open JSON Editor tab                        |
+| `Ctrl+Shift+D` | Log layout debug to console                |
+| `Ctrl++`       | Zoom in (single-column: content, multi: app) |
+| `Ctrl+-`       | Zoom out (single-column: content, multi: app)|
+| `Ctrl+0`       | Zoom reset (single-column: content, multi: app)|
 
 ## Single-Column Mode (Large View)
 
@@ -228,18 +230,20 @@ In single-column mode, a URL input field appears in the column header between th
 
 URL history is stored per column in localStorage and persists across app restarts.
 
-### Zoom Content (Single-Column Mode)
+### Zoom
 
-In single-column mode, you can zoom the content larger or smaller:
+You can zoom both in single-column and multi-column modes:
 
-| Shortcut   | Action         |
-| ---------- | -------------- |
-| `Ctrl++`   | Zoom in (+10%) |
-| `Ctrl+-`   | Zoom out (-10%) |
+| Shortcut   | Action         | Mode                     |
+| ---------- | -------------- | ------------------------ |
+| `Ctrl++`   | Zoom in (+10%) | Both modes               |
+| `Ctrl+-`   | Zoom out (-10%)| Both modes               |
+| `Ctrl+0`   | Zoom reset     | Both modes               |
 
 **Range:** 50% – 300% zoom
 
-Zoom applies only to the active single-column view and resets when switching columns.
+- **Multi-column mode**: BrowserViews are repositioned based on DOM geometry. Columns scale proportionally with zoom.
+- **Single-column mode**: Zoom applies only to the active view's content. Column header (with URL bar) remains visible and functional.
 
 ## Single-Column Identity
 
@@ -452,7 +456,8 @@ Layout values are defined as CSS Custom Properties in `index.html`:
 
 1. **CSS** defines the visual layout as Custom Properties
 2. **Renderer** measures actual rendered heights and sends to Main
-3. **Main Process** uses these heights for exact BrowserView positioning
+3. **Main Process** queries DOM for exact element positions
+4. **BrowserViews** are positioned exactly on the DOM column elements
 
 ### Customizing Layout
 
