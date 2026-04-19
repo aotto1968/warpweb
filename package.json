@@ -1,6 +1,6 @@
 {
   "name": "warpweb",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Multi-column social media aggregator with BrowserView",
   "main": "src/main.js",
   "scripts": {
