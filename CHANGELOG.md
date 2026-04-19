@@ -41,4 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated `README.md` documentation with new zoom feature and keyboard shortcuts
 
+[1.0.3]: https://github.com/aotto1968/warpweb/releases/tag/v1.0.3
+
+[1.0.2]: https://github.com/aotto1968/warpweb/releases/tag/v1.0.2
+
 [1.0.1]: https://github.com/aotto1968/warpweb/releases/tag/v1.0.1
