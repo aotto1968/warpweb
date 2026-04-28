@@ -826,7 +826,8 @@
         // NOTE: May fire BEFORE URL bar is injected (race condition)
         // Fallback: goBack listener uses setTimeout + getUrl() after navigation
         window.warpweb.onUrlChanged(({ key, url }) => {
-            const idx = parseInt(key.split('-').pop());
+            const idx = parseInt(key.split('-').pop(), 10);
+            if (isNaN(idx)) return;
             const urlInput = document.getElementById('url-input-' + idx);
             if (urlInput) {
                 urlInput.value = url;
@@ -841,6 +842,17 @@
                 case 'devtools': window.warpweb.openToplevelDevTools(); break;
                 case 'help': window.warpweb.showHelp(); break;
             }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && currentLargeKey !== null) {
+                const idx = parseInt(currentLargeKey.split('-').pop(), 10);
+                if (!isNaN(idx)) window.warpweb.toggleLarge(idx);
+            }
+        });
+
+        window.warpweb.onFocusWarpweb(() => {
+            document.body.focus();
         });
 
         let helpBarInstance = null;

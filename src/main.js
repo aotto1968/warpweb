@@ -840,6 +840,19 @@ app.whenReady().then(() => {
         logStream.write(`[Warning] warpweb-data.json not found at ${jsonPath}\n`);
     }
     createWindow();
+    // F10 shortcut registration is safe because:
+    // 1. createWindow() sets mainWindow synchronously BEFORE this line executes
+    // 2. mainWindow is never set to null (only destroyed on quit)
+    // 3. Handler has null/isDestroyed check as defense-in-depth
+    globalShortcut.register('F10', () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.moveTop();
+            mainWindow.focus();
+            mainWindow.webContents.focus();
+            mainWindow.webContents.send('focus-warpweb');
+        }
+    });
 });
 
 app.on('window-all-closed', () => {

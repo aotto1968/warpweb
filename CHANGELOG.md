@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-04-24
+
+### Changed
+
+- **Update Electron Builder** - Upgrade electron-builder from ^25.1.8 to ^26.8.1 for Electron 41 compatibility
+
+### Added
+
+- **Build Linux on Tag** - GitHub Actions workflow builds AppImage and .deb when tags are pushed
+
 ## [1.0.3] - 2026-04-19
 
 ### Changed
@@ -39,7 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Updated `README.md` documentation with new zoom feature and keyboard shortcuts
+- **Update README Documentation** - Added new zoom feature and keyboard shortcuts
+
+[1.0.4]: https://github.com/aotto1968/warpweb/releases/tag/v1.0.4
 
 [1.0.3]: https://github.com/aotto1968/warpweb/releases/tag/v1.0.3
 

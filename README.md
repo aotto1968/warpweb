@@ -198,13 +198,24 @@ The Help viewer displays the GitHub README documentation in a BrowserView. It us
 | `Ctrl+Shift+I` | Toggle detached DevTools                    |
 | `Ctrl+Shift+E` | Open JSON Editor tab                        |
 | `Ctrl+Shift+D` | Log layout debug to console                |
-| `Ctrl++`       | Zoom in (single-column: content, multi: app) |
-| `Ctrl+-`       | Zoom out (single-column: content, multi: app)|
+| `Ctrl++`       | Zoom in (single-column: content, multi: app)  |
+| `Ctrl+-`       | Zoom out (single-column: content, multi: app) |
 | `Ctrl+0`       | Zoom reset (single-column: content, multi: app)|
+| `F10`          | Focus WarpWeb (when focus is on a BrowserView)|
+| `ESC`          | Exit single-column mode (when WarpWeb is focused) |
 
 ## Single-Column Mode (Large View)
 
 Click the **large-btn (⤢)** in a column header to enter single-column mode. The column expands to full window width.
+
+### Focus and Keyboard Control
+
+When a BrowserView has focus (e.g., you clicked inside X.com), keyboard events like `ESC` are consumed by the embedded browser and don't reach WarpWeb. To regain control:
+
+1. Press **F10** to bring WarpWeb to the foreground and focus its DOM
+2. Press **ESC** to exit single-column mode
+
+This two-step process ensures embedded browsers still function normally (ESC closes modals, image previews, etc.) while providing a keyboard path back to WarpWeb controls.
 
 ### URL Bar
 

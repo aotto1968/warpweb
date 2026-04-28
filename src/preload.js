@@ -66,5 +66,7 @@ contextBridge.exposeInMainWorld('warpweb', {
     /** @param {function({key: string, url: string})} callback */
     onUrlChanged: (callback) => ipcRenderer.on('url-changed', (event, data) => callback(data)),
     /** @param {number} columnIndex @returns {Promise<string|null>} */
-    getUrl: (columnIndex) => ipcRenderer.invoke('get-url', columnIndex)
+    getUrl: (columnIndex) => ipcRenderer.invoke('get-url', columnIndex),
+    /** @param {function()} callback - called when F10 is pressed to focus WarpWeb */
+    onFocusWarpweb: (callback) => ipcRenderer.on('focus-warpweb', () => callback())
 });
