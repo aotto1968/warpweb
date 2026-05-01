@@ -360,11 +360,15 @@
     </div>
 
     <script>
+        // Single-file UI: HTML + CSS + JS (~960 lines). Kept as one file for simplicity
+        // of the Electron loadFile() pattern. Not split into modules — the script size
+        // is manageable and avoids adding a bundler to the project.
         let currentCategory = null;
         let columnWidth = 400;
         let columns = [];
         let container = null;
         let currentLargeKey = null;
+        let autoWidthEnabled = false;
         // columnFlexCache: Maps column index → original flex value
         // WHY: Large mode changes col.style.flex, we must restore original for multi-column
         let columnFlexCache = new Map();
@@ -416,7 +420,8 @@
         }
 
         function renderUI(data) {
-            const { categories, columnWidth: cw } = data;
+            const { categories, columnWidth: cw, autoWidth } = data;
+            if (autoWidth !== undefined) autoWidthEnabled = autoWidth;
             if (cw) {
                 columnWidth = cw;
                 document.documentElement.style.setProperty('--col-width', columnWidth + 'px');
@@ -432,6 +437,9 @@
             const iconGroup = document.createElement('div');
             iconGroup.className = 'icon-group';
             iconGroup.innerHTML = `
+                <button class="tool-btn" id="auto-width-btn" data-action="autowidth" title="Auto-Breite: Aus">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 11h3V7l5 5-5 5v-4H4v-2zm16 0h-3V7l-5 5 5 5v-4h3v-2z"/></svg>
+                </button>
                 <button class="tool-btn" data-action="json" title="JSON Editor">
                     <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h6v6h6v10H6z" fill="#666"/></svg>
                 </button>
@@ -442,6 +450,12 @@
                     <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" fill="#666"/></svg>
                 </button>`;
             tabsEl.appendChild(iconGroup);
+
+            const awBtn = iconGroup.querySelector('#auto-width-btn');
+            if (awBtn) {
+                awBtn.style.color = autoWidthEnabled ? '#0066cc' : '#666';
+                awBtn.title = autoWidthEnabled ? 'Auto-Breite: Ein' : 'Auto-Breite: Aus';
+            }
 
             currentCategory = katNames[0];
             columns = categories[currentCategory] || [];
@@ -640,6 +654,13 @@
          * - Therefore we CANNOT use a dropdown for URL history
          * - Instead: PageUp/PageDown keyboard navigation through history
          * 
+         * NOTE: This duplicates some logic from createHeaderBar() (keydown handlers,
+         * history management). The two serve different contexts:
+         *   - createHeaderBar: standalone Help header row, full-width, no column flex
+         *   - injectUrlBar: injected into an existing column header, preserves flex
+         * Unifying them would couple Help layout to column internals and vice versa.
+         * The duplication is accepted to keep each path independently maintainable.
+         * 
          * LAYOUT PRESERVATION:
          * - Saves original col.style.flex to columnFlexCache
          * - Restores it in removeUrlBar() to keep multi-column layout unchanged
@@ -785,6 +806,10 @@
             document.getElementById('status').textContent = 'Fehler: ' + err.message;
         });
 
+        // Full UI re-render on data reload: destroys and recreates all tabs and columns.
+        // This is intentional — JSON config change may alter categories, column count,
+        // or widths. A targeted DOM diff would be fragile; full re-render is simple and
+        // correct for the small config sizes in practice (~10 categories, ~50 columns).
         window.warpweb.onDataReloaded(async () => {
             document.getElementById('status').textContent = 'Daten geändert, lade neu...';
             window.warpweb.clearAllViews();
@@ -838,6 +863,7 @@
             const btn = e.target.closest('[data-action]');
             if (!btn) return;
             switch (btn.dataset.action) {
+                case 'autowidth': window.warpweb.toggleAutoWidth(); break;
                 case 'json': window.warpweb.showJsonEditor(); break;
                 case 'devtools': window.warpweb.openToplevelDevTools(); break;
                 case 'help': window.warpweb.showHelp(); break;
@@ -853,6 +879,15 @@
 
         window.warpweb.onFocusWarpweb(() => {
             document.body.focus();
+        });
+
+        window.warpweb.onAutoWidthChanged((enabled) => {
+            autoWidthEnabled = enabled;
+            const btn = document.getElementById('auto-width-btn');
+            if (btn) {
+                btn.style.color = enabled ? '#0066cc' : '#666';
+                btn.title = enabled ? 'Auto-Breite: Ein' : 'Auto-Breite: Aus';
+            }
         });
 
         let helpBarInstance = null;

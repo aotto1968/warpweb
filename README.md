@@ -17,6 +17,42 @@ A desktop application that aggregates multiple social media feeds into a single 
 - **npm** (comes with Node.js)
 - **Electron** (installed via `npm install`)
 
+## Configuration Sources
+
+### warpweb-data.json Search Priority
+
+The JSON configuration file is located using this priority order:
+
+1. `--json=PATH` command line option
+2. `$WARPWEB_JSON_FILE` environment variable
+3. `./warpweb-data.json` in the current working directory
+4. Resolved parent directory (where the symlink points to)
+5. Original directory (where the symlink lives)
+
+### Environment Variables
+
+| Variable            | Purpose                    | Example                             |
+| ------------------- | -------------------------- | ----------------------------------- |
+| `WARPWEB_JSON_FILE` | Path to JSON config file   | `WARPWEB_JSON_FILE=./my-feeds.json` |
+| `WARPWEB_LOG_DIR`   | Directory for log files    | `WARPWEB_LOG_DIR=/tmp/warpweb-logs` |
+
+### Log Directory Priority
+
+The log directory is determined by:
+
+1. `$WARPWEB_LOG_DIR` environment variable
+2. `$PWD/logs` (current working directory)
+3. Original directory (where the symlink lives)
+
+### CLI Options
+
+| Option        | Description                            |
+| ------------- | -------------------------------------- |
+| `--json=PATH` | Use the specified JSON configuration   |
+| `--prod`      | Use `warpweb-data.json` (default)      |
+| `--test`      | Use `warpweb-data-test.json`           |
+| `--dist`      | Use `warpweb-data.json` (packaged app) |
+
 ## warpweb-data.json Configuration
 
 The `warpweb-data.json` file defines all columns and categories displayed in the app.
@@ -52,6 +88,7 @@ The `warpweb-data.json` file defines all columns and categories displayed in the
 | -------------------- | ------------------------------------------------- |
 | `config.columnWidth` | Default column width in pixels (default: 400)     |
 | `config.partition`   | Default browser session partition for all columns |
+| `config.autoWidth`   | Enable auto-width mode on startup (`true`/`false`)|
 
 #### entries (category groups)
 
@@ -151,17 +188,19 @@ The `partition` setting creates separate browser sessions. This allows multiple 
 - **Horizontal scroll** - Navigate many columns with scrollbar
 - **JSON Editor** - Edit configuration directly in the app (BrowserView tab)
 - **Help viewer** - Full documentation in BrowserView tab (uses single-column layout with URL bar)
-- **Keyboard shortcuts** - Ctrl+Shift+I for DevTools, Ctrl+Shift+E for JSON Editor
+- **Keyboard shortcuts** - F10, ESC, Ctrl+Shift+I, Ctrl++/-, see [full table](#keyboard-shortcuts)
 - **Single-column mode (large-btn)** - Full-width view with URL bar
 - **Zoom** - Ctrl++/Ctrl+-Ctrl+0 works in both single-column and multi-column modes
+- **Auto-Width mode** - Toggle (⇔ icon) to auto-resize window width to fit all columns of the current category
 - **URL bar** - Shows current URL, allows navigation, maintains history
 
 ## Header Buttons
 
-Three SVG icon buttons on the right side of the header:
+Four SVG icon buttons on the right side of the header:
 
 | Button      | Icon          | Function                               |
 | ----------- | ------------- | -------------------------------------- |
+| Auto-Width | ⇔ arrows     | Toggles auto-width mode (fit columns)  |
 | JSON Editor | file/doc icon | Opens config editor as BrowserView tab |
 | DevTools    | wrench icon   | Opens detached DevTools window         |
 | Help        | circle-? icon | Opens documentation as BrowserView tab |
@@ -255,6 +294,47 @@ You can zoom both in single-column and multi-column modes:
 
 - **Multi-column mode**: BrowserViews are repositioned based on DOM geometry. Columns scale proportionally with zoom.
 - **Single-column mode**: Zoom applies only to the active view's content. Column header (with URL bar) remains visible and functional.
+
+## Auto-Width Mode
+
+The **Auto-Width** toggle (⇔ icon, top-right of the tab bar) makes the window width automatically fit all columns of the currently selected category.
+
+### Behavior
+
+| Action | Result |
+|--------|--------|
+| Click icon (⇔ gray) | Toggle ON — window resizes to fit columns (blue icon) |
+| Click icon (⇔ blue) | Toggle OFF — window stays at current size (gray icon) |
+| Switch category | Window auto-resizes to fit the new category's columns |
+| App restart with `autoWidth:true` | Window starts at the correct width |
+
+### What it does
+
+When active, the window is resized to:
+- **Width**: `sum(all column widths) + gaps + padding`, capped at screen width
+- **Height**: Full screen height (`workAreaSize.height`)
+
+This creates a consistent side-by-side view across all category switches.
+
+### What it does NOT do
+
+- **Single-column (large) mode** — auto-width is ignored (column already fills the window).
+- **Help / JSON Editor overlays** — auto-width is suspended while these are open.
+- **Maximized window** — auto-width is suspended (avoids fighting the OS maximize state).
+
+### Persistence
+
+The on/off state is saved to `config.autoWidth` in `warpweb-data.json` and restored on next startup.
+
+```json
+{
+  "config": {
+    "columnWidth": 464,
+    "partition": "persist:warpweb-shared",
+    "autoWidth": false
+  }
+}
+```
 
 ## Single-Column Identity
 

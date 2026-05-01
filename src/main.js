@@ -1,4 +1,4 @@
-const { app, BrowserWindow, BrowserView, ipcMain, shell, globalShortcut } = require('electron');
+const { app, BrowserWindow, BrowserView, ipcMain, shell, globalShortcut, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -31,6 +31,7 @@ let dataHash = null;
 let helpView = null;
 let jsonEditorView = null;
 let zoomFactor = 1.0;
+let autoWidthEnabled = false;
 const ZOOM_STEP = 0.1;
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 3.0;
@@ -57,7 +58,16 @@ function buildColumnConfigCache(entries) {
 }
 
 function initLogging() {
-    const logsDir = path.join(__dirname, '..', '..', 'logs');
+    let logsDir;
+    for (const arg of process.argv) {
+        if (arg.startsWith('--log-dir=')) {
+            logsDir = path.normalize(arg.split('=')[1]);
+            break;
+        }
+    }
+    if (!logsDir) {
+        logsDir = path.join(__dirname, '..', '..', 'logs');
+    }
     if (!fs.existsSync(logsDir)) {
         fs.mkdirSync(logsDir, { recursive: true });
     }
@@ -189,9 +199,10 @@ function createWindow() {
         logStream.write(`[Error] Renderer process gone: ${details.reason}\n`);
     });
 
-    mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
-        if (level >= 2) {
-            logStream.write(`[Renderer ${level}] ${message} (line ${line})\n`);
+    mainWindow.webContents.on('console-message', (details) => {
+        const isError = details.level === 'error' || details.level === 'warning';
+        if (isError) {
+            logStream.write(`[Renderer ${details.level}] ${details.message} (line ${details.lineNumber})\n`);
         }
     });
 
@@ -314,11 +325,11 @@ function openBrowserView(category, columnIndex, url) {
 
         view.webContents.loadURL(url);
 
-        try {
-            positionBrowserViews();
-        } catch (e) {
-            logStream.write(`[Error] positionBrowserViews failed: ${e.message}\n`);
-        }
+        positionBrowserViews().then(() => {
+            if (autoWidthEnabled) applyAutoWidth();
+        }).catch(e => {
+            logStream.write(`[Error] openBrowserView chain: ${e.message}\n`);
+        });
     });
 }
 
@@ -433,105 +444,154 @@ function logLayoutDebug() {
 
 function positionBrowserViews(retryCount = 0) {
     if (!mainWindow || mainWindow.isDestroyed() || !mainWindow.webContents) {
-        return;
+        return Promise.resolve();
     }
 
     if (browserViews.size === 0) {
-        return;
+        return Promise.resolve();
     }
 
-    mainWindow.webContents.executeJavaScript(`
-        (function() {
-            const container = document.getElementById('columns-container');
-            if (!container) return null;
-            const columns = document.querySelectorAll('.column');
-            const tabs = document.getElementById('tabs');
-            const statusBar = document.querySelector('.status-bar');
-            const containerRect = container.getBoundingClientRect();
-            const result = {
-                containerBounds: { left: containerRect.left, top: containerRect.top, width: containerRect.width, height: containerRect.height },
-                tabsBounds: null,
-                statusBarBounds: null,
-                columnCount: columns.length,
-                columns: []
-            };
-            if (tabs) {
-                const r = tabs.getBoundingClientRect();
-                result.tabsBounds = { left: r.left, top: r.top, width: r.width, height: r.height };
-            }
-            if (statusBar) {
-                const r = statusBar.getBoundingClientRect();
-                result.statusBarBounds = { left: r.left, top: r.top, width: r.width, height: r.height };
-            }
-            columns.forEach((col, i) => {
-                const placeholder = col.querySelector('.col-placeholder');
-                const colRect = col.getBoundingClientRect();
-                const placeholderRect = placeholder ? placeholder.getBoundingClientRect() : null;
-                result.columns.push({
-                    index: i,
-                    bounds: { left: colRect.left, top: colRect.top, width: colRect.width, height: colRect.height },
-                    placeholderBounds: placeholderRect ? { left: placeholderRect.left, top: placeholderRect.top, width: placeholderRect.width, height: placeholderRect.height } : null
-                });
-            });
-            return result;
-        })()
-    `).then(data => {
-        if (!data) {
-            if (retryCount < 3) {
-                setTimeout(() => positionBrowserViews(retryCount + 1), 100);
-            }
-            return;
-        }
-
-        const zoom = mainWindow.webContents.getZoomFactor();
-        const gap = 8;
-
-        for (const [key, view] of browserViews) {
-            const [viewCategory, idxStr] = key.split('-');
-            const columnIndex = parseInt(idxStr);
-
-            if (viewCategory !== currentCategory) {
-                view.setBounds({ x: -9999, y: 0, width: 0, height: 0 });
-                continue;
-            }
-
-            if (largeColumnKey !== null && largeColumnKey !== key) {
-                view.setBounds({ x: -9999, y: 0, width: 0, height: 0 });
-                continue;
-            }
-
-            const colData = data.columns[columnIndex];
-            if (!colData || !colData.placeholderBounds) {
-                continue;
-            }
-
-            const colWidth = colData.placeholderBounds.width * zoom;
-            let xPos = data.containerBounds.left + layoutHeights.containerPadding - scrollX;
-            for (let i = 0; i < columnIndex; i++) {
-                const prevCol = data.columns[i];
-                if (prevCol && prevCol.placeholderBounds) {
-                    xPos += prevCol.placeholderBounds.width * zoom + gap;
+    return new Promise((resolve) => {
+        function attempt(count) {
+            mainWindow.webContents.executeJavaScript(`
+                (function() {
+                    const container = document.getElementById('columns-container');
+                    if (!container) return null;
+                    const columns = document.querySelectorAll('.column');
+                    const tabs = document.getElementById('tabs');
+                    const statusBar = document.querySelector('.status-bar');
+                    const containerRect = container.getBoundingClientRect();
+                    const result = {
+                        containerBounds: { left: containerRect.left, top: containerRect.top, width: containerRect.width, height: containerRect.height },
+                        tabsBounds: null,
+                        statusBarBounds: null,
+                        columnCount: columns.length,
+                        columns: []
+                    };
+                    if (tabs) {
+                        const r = tabs.getBoundingClientRect();
+                        result.tabsBounds = { left: r.left, top: r.top, width: r.width, height: r.height };
+                    }
+                    if (statusBar) {
+                        const r = statusBar.getBoundingClientRect();
+                        result.statusBarBounds = { left: r.left, top: r.top, width: r.width, height: r.height };
+                    }
+                    columns.forEach((col, i) => {
+                        const placeholder = col.querySelector('.col-placeholder');
+                        const colRect = col.getBoundingClientRect();
+                        const placeholderRect = placeholder ? placeholder.getBoundingClientRect() : null;
+                        result.columns.push({
+                            index: i,
+                            bounds: { left: colRect.left, top: colRect.top, width: colRect.width, height: colRect.height },
+                            placeholderBounds: placeholderRect ? { left: placeholderRect.left, top: placeholderRect.top, width: placeholderRect.width, height: placeholderRect.height } : null
+                        });
+                    });
+                    return result;
+                })()
+            `).then(data => {
+                if (!data) {
+                    if (count < 3) {
+                        setTimeout(() => attempt(count + 1), 100);
+                    } else {
+                        resolve();
+                    }
+                    return;
                 }
-            }
 
-            let b;
-            if (largeColumnKey === key) {
-                const contentTop = colData.placeholderBounds.top * zoom;
-                const contentHeight = colData.placeholderBounds.height * zoom;
-                b = { x: 0, y: contentTop, width: data.containerBounds.width * zoom, height: contentHeight };
-            } else {
-                b = { x: xPos, y: colData.placeholderBounds.top * zoom, width: colWidth, height: colData.placeholderBounds.height * zoom };
-            }
-            view.setBounds(b);
+                const zoom = mainWindow.webContents.getZoomFactor();
+                const gap = 8;
+
+                for (const [key, view] of browserViews) {
+                    const [viewCategory, idxStr] = key.split('-');
+                    const columnIndex = parseInt(idxStr);
+
+                    if (viewCategory !== currentCategory) {
+                        view.setBounds({ x: -9999, y: 0, width: 0, height: 0 });
+                        continue;
+                    }
+
+                    if (largeColumnKey !== null && largeColumnKey !== key) {
+                        view.setBounds({ x: -9999, y: 0, width: 0, height: 0 });
+                        continue;
+                    }
+
+                    const colData = data.columns[columnIndex];
+                    if (!colData || !colData.placeholderBounds) {
+                        continue;
+                    }
+
+                    const colWidth = colData.placeholderBounds.width * zoom;
+                    let xPos = data.containerBounds.left + layoutHeights.containerPadding - scrollX;
+                    for (let i = 0; i < columnIndex; i++) {
+                        const prevCol = data.columns[i];
+                        if (prevCol && prevCol.placeholderBounds) {
+                            xPos += prevCol.placeholderBounds.width * zoom + gap;
+                        }
+                    }
+
+                    let b;
+                    // large/single vs multi-column: different bounds math
+                    if (largeColumnKey === key) {
+                        const contentTop = colData.placeholderBounds.top * zoom;
+                        const contentHeight = colData.placeholderBounds.height * zoom;
+                        b = { x: 0, y: contentTop, width: data.containerBounds.width * zoom, height: contentHeight };
+                    } else {
+                        b = { x: xPos, y: colData.placeholderBounds.top * zoom, width: colWidth, height: colData.placeholderBounds.height * zoom };
+                    }
+                    view.setBounds(b);
+                }
+                resolve();
+            }).catch(e => {
+                logStream.write(`[Error] positionBrowserViews: ${e.message}\n`);
+                resolve();
+            });
         }
-    }).catch(e => {
-        logStream.write(`[Error] positionBrowserViews: ${e.message}\n`);
+        attempt(retryCount);
     });
+}
+
+function applyAutoWidth() {
+    if (!autoWidthEnabled || !mainWindow || mainWindow.isDestroyed()) return;
+    if (mainWindow.isMaximized()) return;
+    if (helpView || jsonEditorView) return;
+    if (largeColumnKey !== null) return;
+
+    const data = getCachedData();
+    if (!data) return;
+    const entries = data.entries || data;
+    // O(n) linear scan over categories (~7 entries) — negligible.
+    // Not worth a Map cache: categories change only on JSON reload,
+    // and applyAutoWidth runs only on category switch or toggle.
+    const cat = entries.find(e => e.category === currentCategory);
+    if (!cat || !cat.items || cat.items.length === 0) return;
+
+    const gap = 8;
+    const padding = layoutHeights.containerPadding * 2;
+    let totalWidth = padding;
+    for (const item of cat.items) {
+        const w = item.columnWidth || cat.columnWidth || columnWidth;
+        totalWidth += w + gap;
+    }
+    totalWidth -= gap;
+
+    const display = screen.getPrimaryDisplay().workAreaSize;
+    const newWidth = Math.min(Math.ceil(totalWidth), display.width);
+    const newHeight = display.height;
+
+    // Full screen height is intentional — the user explicitly enabled auto-width
+    // mode. Every category switch resizes to full height for a consistent
+    // side-by-side view. If the user prefers a smaller window, disable the mode.
+    const [curWidth, curHeight] = mainWindow.getSize();
+    if (curWidth !== newWidth || curHeight !== newHeight) {
+        mainWindow.setSize(newWidth, newHeight);
+    }
 }
 
 function showCategory(category) {
     currentCategory = category;
-    positionBrowserViews();
+    positionBrowserViews().then(() => applyAutoWidth()).catch(e => {
+        logStream.write(`[Error] showCategory applyAutoWidth: ${e.message}\n`);
+    });
 }
 
 ipcMain.on('show-category', (event, category) => {
@@ -546,6 +606,33 @@ ipcMain.on('set-scroll-x', (event, x) => {
 ipcMain.on('set-container-height', (event, { scrollbarVisible: visible }) => {
     scrollbarVisible = visible;
     positionBrowserViews();
+});
+
+ipcMain.on('toggle-auto-width', () => {
+    autoWidthEnabled = !autoWidthEnabled;
+
+    const jsonPath = getJsonPath();
+    try {
+        const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+        if (!data.config) data.config = {};
+        data.config.autoWidth = autoWidthEnabled;
+        fs.writeFileSync(jsonPath, JSON.stringify(data, null, 2), 'utf-8');
+        cachedData = null;
+    } catch (e) {
+        logStream.write(`[Error] Failed to save autoWidth: ${e.message}\n`);
+    }
+
+    if (autoWidthEnabled) {
+        try {
+            applyAutoWidth();
+        } catch (e) {
+            logStream.write(`[Error] toggle applyAutoWidth: ${e.message}\n`);
+        }
+    }
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('auto-width-changed', autoWidthEnabled);
+    }
 });
 
 // go-back handler using navigationHistory API
@@ -772,13 +859,18 @@ ipcMain.handle('get-data', () => {
             if (data.config.partition) {
                 partition = data.config.partition;
             }
+            if (data.config.autoWidth) {
+                autoWidthEnabled = true;
+            } else {
+                autoWidthEnabled = false;
+            }
         }
         if (shouldRebuildCache(data)) {
             buildColumnConfigCache(entries);
         }
-        return { entries, categories, columnWidth };
+        return { entries, categories, columnWidth, autoWidth: autoWidthEnabled };
     }
-    return { entries: [], categories: {}, columnWidth };
+    return { entries: [], categories: {}, columnWidth, autoWidth: false };
 });
 
 ipcMain.handle('get-system-info', () => {
@@ -832,6 +924,9 @@ app.whenReady().then(() => {
             }
             if (data.config.partition) {
                 partition = data.config.partition;
+            }
+            if (data.config.autoWidth) {
+                autoWidthEnabled = true;
             }
         }
         buildColumnConfigCache(entries);

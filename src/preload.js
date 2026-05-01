@@ -68,5 +68,9 @@ contextBridge.exposeInMainWorld('warpweb', {
     /** @param {number} columnIndex @returns {Promise<string|null>} */
     getUrl: (columnIndex) => ipcRenderer.invoke('get-url', columnIndex),
     /** @param {function()} callback - called when F10 is pressed to focus WarpWeb */
-    onFocusWarpweb: (callback) => ipcRenderer.on('focus-warpweb', () => callback())
+    onFocusWarpweb: (callback) => ipcRenderer.on('focus-warpweb', () => callback()),
+    /** Toggle auto-width mode on/off */
+    toggleAutoWidth: () => ipcRenderer.send('toggle-auto-width'),
+    /** @param {function(boolean)} callback - receives enabled state */
+    onAutoWidthChanged: (callback) => ipcRenderer.on('auto-width-changed', (event, enabled) => callback(enabled))
 });
