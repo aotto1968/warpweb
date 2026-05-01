@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-05-01
+
+### Added
+
+- **Auto-Width Mode** - Toggle button (⇔ icon, top-right) to auto-resize window width to fit all columns and height to full screen. Persisted via `config.autoWidth` in `warpweb-data.json`.
+- **Full-Height Side-by-Side View** - Auto-width mode also sets window height to full screen for a consistent side-by-side view across category switches.
+- **Symlink/Sandbox Support** - `warpweb.sh` refactored with 5-step JSON lookup and 3-step log directory resolution to fix EROFS errors in sandbox environments.
+- **call-release.sh** - New automation tool for release workflow (commit, tag, push, GitHub release).
+- **AI-Generated Changelog Drafts** - `call-release.sh --dry-run --tag <ref>` generates changelog drafts from git diff via Grok API.
+
+### Changed
+
+- **positionBrowserViews Promise** - Returns a proper Promise now, enabling safe chaining of post-positioning logic (`applyAutoWidth()`).
+- **console-message Handler** - Updated from deprecated positional args to modern `MessageDetails` object API (Electron 41).
+- **warpweb.sh Path Resolution** - Major refactoring with `find_json_file()` and `find_log_dir()` functions for multi-location priority search.
+- **Keyboard Shortcut Safety** - Added radix `10` to `parseInt()` calls, NaN guards in URL change and ESC key handlers.
+- **README Documentation** - Added Configuration Sources, Auto-Width Mode, and updated Header Buttons sections.
+
+### Fixed
+
+- **EROFS Sandbox Error** - Logs no longer try to write to read-only canonical symlink path. Resolved via `--log-dir=` argument.
+- **Renderer Error Logging** - Deprecated `console-message` positional arg handler was silently dropping errors in Electron 41.
+- **positionBrowserViews Retry** - Retry logic previously resolved outer promise prematurely before positioning completed.
+- **screen Import** - Moved `screen` to top-level destructuring, removed dynamic `require('electron')` inside function.
+- **Null Guard in applyAutoWidth** - Handles missing JSON data gracefully to prevent crashes.
+
 ## [1.0.4] - 2026-04-24
 
 ### Changed
@@ -50,6 +76,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Update README Documentation** - Added new zoom feature and keyboard shortcuts
+
+[1.0.5]: https://github.com/aotto1968/warpweb/releases/tag/v1.0.5
 
 [1.0.4]: https://github.com/aotto1968/warpweb/releases/tag/v1.0.4
 
